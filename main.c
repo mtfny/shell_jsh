@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include "commandes.h"
 
 #define MAX_PROMPT_LENGTH 30
 #define MAX_PATH_LENGTH 512
@@ -20,7 +21,7 @@ void prompt(const char *path){
 
     // On vérifie la longueur
     if (strlen(path) > (MAX_PROMPT_LENGTH - 4)) {
-             snprintf(prompt, sizeof(prompt), " ... %s  ", path + strlen(path) - (MAX_PROMPT_LENGTH - 7)); 
+             snprintf(prompt, sizeof(prompt), "... %s ", path + strlen(path) - (MAX_PROMPT_LENGTH - 7)); 
     }else{
          snprintf(prompt, sizeof(prompt), "%s ", path);
     } 
@@ -53,7 +54,8 @@ int main(int argc, char const *argv[])
         // Ajout de la ligne à l'historique
         add_history(line);
 
-        // 
+        // traitement de l'instruction donnée par l'utilisateur
+        
 
         // Libération de la mémoire allouée par readline
         free(line);
@@ -61,9 +63,8 @@ int main(int argc, char const *argv[])
     }
 
 
-    
-
-    
+    free(chemin_courant);
+  
     return 0;
 }
 
