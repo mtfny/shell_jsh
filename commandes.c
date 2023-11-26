@@ -1,3 +1,4 @@
+#include "commandes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include<stdint.h>
@@ -14,16 +15,21 @@ struct commandes
     char commande[30];
 };
 /*
+c'est cette fonction qui va appeler la bonne commande si l'argument n'est pas bon on enverra un message d'erreur
+void appel(char commande, char path_exec){
 
-char *pwd(){}
+} 
 
-void ls(char PATH){}
 
-char *cd(char PATH){}
 
-void cp(char fic1,char fic2){}
 
-void mv(char fic1,char fic2){}
+int ls(char PATH){}
+
+int *cd(char PATH){}
+
+int cp(char fic1,char fic2){}
+
+int mv(char fic1,char fic2){}
 */
 
 
