@@ -34,7 +34,7 @@ void prompt(const char *path,int jobs){
 
     // On vérifie la longueur
     if (strlen(path) > max) {
-             snprintf(prompt, sizeof(prompt), "[%d]... %s ",jobs, path + strlen(path) - (MAX_PROMPT_LENGTH - 7)); 
+             snprintf(prompt, sizeof(prompt), "[%d]...%s ",jobs, path + strlen(path) - (MAX_PROMPT_LENGTH - 7)); 
     }else{
          snprintf(prompt, sizeof(prompt), "[%d] %s ",jobs, path);
     } 
@@ -71,7 +71,22 @@ int main(int argc, char const *argv[])
         add_history(line);
 
         // traitement de l'instruction donnée par l'utilisateur
-        
+        pid_t pid = fork();
+
+        if (pid == -1) {
+            perror("Erreur lors de la création du processus fils");
+            exit(EXIT_FAILURE);
+        }
+        if (pid == 0) {
+            
+            appel(chemin_courant, line);
+
+            // Libération de la mémoire allouée par readline
+            free(line);
+
+            // Sortie du processus fils
+            exit(EXIT_SUCCESS);
+        } 
 
         // Libération de la mémoire allouée par readline
         free(line);
