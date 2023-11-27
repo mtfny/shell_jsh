@@ -12,13 +12,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-struct commandes
-{
-    char commande[30];
-};
-/*
-c'est cette fonction qui va appeler la bonne commande si l'argument n'est pas bon on enverra un message d'erreur*/
-char *decoupe_ligne(const char *ligne){ 
+
+
+/*découpe la ligne en tableau de mots*/
+char **decoupe_ligne(const char *ligne){ 
     char **mots = malloc(256 * sizeof(char *));
     if (mots == NULL) {
         perror("Erreur d'allocation de mémoire");
@@ -29,7 +26,7 @@ char *decoupe_ligne(const char *ligne){
     int i = 0;
 
     // Utilisation de strtok pour découper la ligne de commande en mots
-    char **ligne_copy = strdup(ligne); // Copier la ligne pour éviter de modifier la ligne d'origine
+    char *ligne_copy = strdup(ligne); // Copier la ligne pour éviter de modifier la ligne d'origine
     if (ligne_copy == NULL) {
         perror("Erreur d'allocation de mémoire");
         exit(EXIT_FAILURE);
@@ -59,25 +56,44 @@ void liberer_mots(char **mots) {
     free(mots);
 }
 
-/*int appel_commande_speciale(){
+/*int appel_commande_speciale(){  [À FAIRE]
  int res;
 
 
  return res;
 }*/
 
-void appel(const char *chemin,const char *instruction){
-    int res = 0;
+/*c'est cette fonction qui va appeler la bonne commande */
+int appel(const char *chemin,const char *instruction){
+    int res;
+    char **mots = decoupe_ligne(instruction);
 
-    char cmd[256]; /* on prevoit jusqu'à 3 arguments (option arg1 arg2)*/
-    char arg1[256];
-    char arg2[256];
-    char arg3[256];
+    if (mots[0] == NULL) // aucune instruction n'a été donnée
+    {
+        res = 1;
+    }
+    
 
-    sscanf(instruction,"%s %s %s",cmd , arg1,arg2);
+    char *cmd = mots[0] ; /* on prevoit jusqu'à 3 arguments après la commande (option arg1 arg2)*/
+    char *arg1 = mots[1];
+    char *arg2 = mots[2];
+    char *arg3 = mots[3];
 
+   
+    if (strcmp(cmd,"pwd") == 0)
+    {
+        if (arg1 != NULL || arg2 != NULL || arg3 != NULL) // pwd doit etre appelée sans arguments
+        {
+            res = 1;
+            perror("erreur : pwd avec arguments");
+            return res;
+        }else{
+             res = pwd();
+        }
+       
+    }
 
-    //return res;
+    return res;
 } 
 
 int pwd(){
@@ -112,18 +128,3 @@ int mv(char *fic1,char *fic2){}
 */
 
 
-
-int main(int argc, char const *argv[])
-{
-    const char *exemple_ligne = "commande1 argument1 argument2";
-    char **mots = decoupe_ligne(exemple_ligne);
-
-    // Exemple d'utilisation des mots découpés
-    for (int i = 0; mots[i] != NULL; i++) {
-        printf("Mot %d : %s\n", i, mots[i]);
-    }
-
-    pwd();
-    
-    return 0;
-}

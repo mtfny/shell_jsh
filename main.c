@@ -73,7 +73,7 @@ int main(int argc, char const *argv[])
         // traitement de l'instruction donnée par l'utilisateur
         pid_t pid = fork();
 
-        if (pid == -1) {
+       if (pid == -1) {
             perror("Erreur lors de la création du processus fils");
             exit(EXIT_FAILURE);
         }
@@ -87,6 +87,11 @@ int main(int argc, char const *argv[])
             // Sortie du processus fils
             exit(EXIT_SUCCESS);
         } 
+        else {
+            // Attendre la fin du processus fils dans le processus parent
+            int status;
+            waitpid(pid, &status, 0);
+        }
 
         // Libération de la mémoire allouée par readline
         free(line);
