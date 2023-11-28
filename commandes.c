@@ -63,7 +63,7 @@ void liberer_mots(char **mots) {
 
 /*c'est cette fonction qui va appeler la bonne commande */
 int appel(const char *instruction){
-    int res;
+    int res = 1;
 
     char* inputString = strdup(instruction);  // Utilisation de strdup pour allouer dynamiquement de la mémoire
 
@@ -78,7 +78,7 @@ int appel(const char *instruction){
 
     if (words[0] == NULL) // aucune instruction n'a été donnée
     {
-        res = 1;
+        res = 0;
     }
 
     if (strcmp(words[0],"pwd") == 0)
@@ -90,15 +90,24 @@ int appel(const char *instruction){
         res = cd(numWords , words);
     }
 
+    if (strcmp(words[0],"?") == 0){
+        res = interogation(numWords , words);
+    } 
+
     free(inputString);
     free(words);
 
+    char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
+    // Utilisation de sprintf pour convertir l'entier en chaîne de caractères
+    sprintf(buffer, "%d", res);
+    int c =setenv("LAST_RET",buffer,1);
+    
     return res;
 } 
 
 int pwd(int argc, char *argv[]){
     if (argc > 1){
-        printf("pwd : trop d'argument\n");
+        printf("pwd : Trop d'arguments donnés en paramètre\n");
         return 1;
     }
     char *cwd;
@@ -126,10 +135,8 @@ int isDirecrory(char const *chemin) {
     if (lstat(chemin, &file_info) == 0) {
         // Vérifier si c'est un répertoire
         if (S_ISDIR(file_info.st_mode)) {
-            printf("%s est un répertoire.\n", chemin);
             return 0;
         } else {
-            printf("%s n'est pas un répertoire.\n", chemin);
             return 1;
         }
     } else {
@@ -142,14 +149,14 @@ int isDirecrory(char const *chemin) {
 int cd (int argc, char *argv[])
 {   
     if(argc > 2){  // La commande cd avec plusieurs arguments -> erreur 
-        perror ("cd : Trop d'arguments donnés en paramètre\n");
+        printf ("cd : Trop d'arguments donnés en paramètre\n");
         return 1;
     } else{
         char *destination = malloc(1024);
 
         if (argc == 1 ){ // La commande cd sans argument -> retour à la racine 
             if (getenv("HOME") == NULL){ // Pas de variable HOME définie 
-                perror("cd : Pas de valeur : HOME");
+                printf("cd : Pas de valeur : HOME");
                 free(destination);
                 return 1;
             }else{ // destination -> référence de HOME
@@ -172,13 +179,13 @@ int cd (int argc, char *argv[])
         if (isDirecrory(destination) != 0){ //Si le fichier n'existe pas, ou existe mais n'est pas un répertoire
             free(destination);
             free(tmp);
-            perror("cd : Chemin non valide \n");
+            printf("cd : Chemin non valide \n");
             return 1;
         }
 
 
         if(chdir(destination) != 0 ){ //On ne peut pas ouvrir le fichier
-            perror("cd : Vous ne pouvez pas ouvrir le fichier\n");
+            printf("cd : Vous ne pouvez pas ouvrir le fichier\n");
             free(destination);
             free(tmp);
             return 1;
@@ -199,18 +206,32 @@ int cd (int argc, char *argv[])
 
 }
 
+int interogation (int argc, char *argv[]){
+    if(argc > 1) {
+        printf("? : Trop d'arguments donnés en paramètre\n");
+    }
+
+    if(getenv("LAST_RET") == NULL){ 
+        printf("? : Aucune commande récente\n");
+        return 1;
+    }
+    
+    printf("%d\n", atoi(getenv("LAST_RET")));
+    return 0;
+
+}
+
+
 
 /*
 
-int pwd(const char *chemin_courant){}
-
 int ls(char *PATH){}
-
-int *cd(char *PATH){}
 
 int cp(char *fic1,*har *fic2){}
 
 int mv(char *fic1,char *fic2){}
+
+int mkdir(){}
 */
 
 
