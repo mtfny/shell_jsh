@@ -64,7 +64,6 @@ void liberer_mots(char **mots) {
 /*c'est cette fonction qui va appeler la bonne commande */
 int appel(const char *instruction){
     int res = 1;
-
     char* inputString = strdup(instruction);  // Utilisation de strdup pour allouer dynamiquement de la mémoire
 
     if (inputString == NULL) {
@@ -92,6 +91,10 @@ int appel(const char *instruction){
 
     if (strcmp(words[0],"?") == 0){
         res = interogation(numWords , words);
+    } 
+
+    if (strcmp(words[0],"exit") == 0){
+        res = my_exit(numWords , words);
     } 
 
     free(inputString);
@@ -221,6 +224,27 @@ int interogation (int argc, char *argv[]){
 
 }
 
+int my_exit(int argc, char *argv[]){
+    if(argc > 2){
+        printf("exit : Trop d'arguments donnés en paramètre\n");
+        return 1;
+    }
+
+    if(argc == 2){
+        printf("exit avec la valeur %d", atoi(argv[1]));
+        exit(atoi(argv[1]));
+    }else {
+        if (getenv("LAST_RET") != NULL){
+            printf("exit avec la valeur %d", atoi(getenv("LAST_RET")));
+            exit(atoi(getenv("LAST_RET")));
+        }else{
+            printf("exit avec la valeur 0");
+            exit(0);
+        }
+    }
+
+    return 0;
+}
 
 
 /*
