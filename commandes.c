@@ -14,39 +14,37 @@
 
 
 
-/*découpe la ligne en tableau de mots*/
-char **decoupe_ligne(const char *ligne){ 
-    char **mots = malloc(256 * sizeof(char *));
-    if (mots == NULL) {
-        perror("Erreur d'allocation de mémoire");
+char** splitString(char* inputString, int* numWords) {
+    char** words = (char**)malloc(1024 * sizeof(char*));
+
+    if (words == NULL) {
+        perror("Allocation memory error");
         exit(EXIT_FAILURE);
     }
 
-    char *token;
-    int i = 0;
+    char* token = strtok(inputString, " ");
+    *numWords = 0;
 
-    // Utilisation de strtok pour découper la ligne de commande en mots
-    char *ligne_copy = strdup(ligne); // Copier la ligne pour éviter de modifier la ligne d'origine
-    if (ligne_copy == NULL) {
-        perror("Erreur d'allocation de mémoire");
-        exit(EXIT_FAILURE);
-    }
-
-    token = strtok(ligne_copy, " ");
     while (token != NULL) {
-        mots[i] = strdup(token); // Allouer de l'espace pour chaque mot
-        if (mots[i] == NULL) {
-            perror("Erreur d'allocation de mémoire");
+        words[*numWords] = (char*)malloc((strlen(token) + 1) * sizeof(char));
+
+        if (words[*numWords] == NULL) {
+            perror("Allocation memory error");
             exit(EXIT_FAILURE);
         }
-        i++;
+
+        strcpy(words[*numWords], token);
+        (*numWords)++;
+
+        if (*numWords >= 1024) {
+            fprintf(stderr, "Too many words, increase MAX_WORDS\n");
+            exit(EXIT_FAILURE);
+        }
+
         token = strtok(NULL, " ");
     }
-    mots[i] = NULL; // La liste de mots est terminée par NULL
 
-    free(ligne_copy); // Libérer la mémoire de la copie temporaire de la ligne
-
-    return mots;
+    return words;
 }
 
 void liberer_mots(char **mots) {
@@ -64,34 +62,36 @@ void liberer_mots(char **mots) {
 }*/
 
 /*c'est cette fonction qui va appeler la bonne commande */
-int appel(const char *chemin,const char *instruction){
+int appel(const char *instruction){
     int res;
-    char **mots = decoupe_ligne(instruction);
 
-    if (mots[0] == NULL) // aucune instruction n'a été donnée
+    char* inputString = strdup(instruction);  // Utilisation de strdup pour allouer dynamiquement de la mémoire
+
+    if (inputString == NULL) {
+        perror("Allocation memory error");
+        exit(EXIT_FAILURE);
+    }
+    
+    int numWords;
+
+    char** words = splitString(inputString, &numWords);
+
+    if (words[0] == NULL) // aucune instruction n'a été donnée
     {
         res = 1;
     }
-    
 
-    char *cmd = mots[0] ; /* on prevoit jusqu'à 3 arguments après la commande (option arg1 arg2)*/
-    char *arg1 = mots[1];
-    char *arg2 = mots[2];
-    char *arg3 = mots[3];
-
-   
-    if (strcmp(cmd,"pwd") == 0)
+    if (strcmp(words[0],"pwd") == 0)
     {
-        if (arg1 != NULL || arg2 != NULL || arg3 != NULL) // pwd doit etre appelée sans arguments
-        {
-            res = 1;
-            perror("erreur : pwd avec arguments");
-            return res;
-        }else{
-             res = pwd();
-        }
-       
+             res = pwd();  
     }
+
+    if (strcmp(words[0],"cd") == 0){
+        res = cd(numWords , words);
+    }
+
+    free(inputString);
+    free(words);
 
     return res;
 } 
@@ -100,7 +100,7 @@ int pwd(){
     char *cwd;
     char buff [PATH_MAX + 1];
 
-    cwd = getcwd(buff,PATH_MAX+1);
+    cwd = getenv("PWD");
 
     if (cwd != NULL)
     {
@@ -111,6 +111,88 @@ int pwd(){
     perror("getcwd pour pwd");
     return 1;
     
+} 
+
+
+int isDirecrory(char const *chemin) {
+
+    struct stat file_info;
+
+    // Utilisation de lstat pour obtenir des informations sur le fichier ou le répertoire
+    if (lstat(chemin, &file_info) == 0) {
+        // Vérifier si c'est un répertoire
+        if (S_ISDIR(file_info.st_mode)) {
+            printf("%s est un répertoire.\n", chemin);
+            return 0;
+        } else {
+            printf("%s n'est pas un répertoire.\n", chemin);
+            return 1;
+        }
+    } else {
+        // Si lstat échoue, cela peut signifier que le fichier n'existe pas
+        return 2;
+    }
+}
+
+
+int cd (int argc, char *argv[])
+{   
+    if(argc > 2){  // La commande cd avec plusieurs arguments -> erreur 
+        perror ("Trop d'arguments donnés en paramètre\n");
+        return 1;
+    } else{
+        char *destination = malloc(1024);
+
+        if (argc == 1 ){ // La commande cd sans argument -> retour à la racine 
+            if (getenv("HOME") == NULL){ // Pas de variable HOME définie 
+                perror("Pas de valeur : HOME");
+                free(destination);
+                return 1;
+            }else{ // destination -> référence de HOME
+                strcpy(destination, getenv("HOME"));
+            }
+        }
+
+        if (argc == 2){ // La commande cd avec un arguments
+            if (strcmp(argv[1], "-") == 0 && getenv("OLDPWD") != NULL){ //destination -> dernier répertoire ouvert 
+                strcpy(destination, getenv("OLDPWD"));
+            }else if (strcmp(argv[1], "~") == 0 && getenv("HOME") != NULL){ //destination -> dernier répertoire ouvert 
+                strcpy(destination, getenv("HOME"));
+            }else{ //cas normal 
+                strcpy(destination, argv[1]);
+            }
+        }
+        char *tmp = getcwd(NULL, 0);
+
+
+        if (isDirecrory(destination) != 0){ //Si le fichier n'existe pas, ou existe mais n'est pas un répertoire
+            free(destination);
+            free(tmp);
+            perror("Chemin non valide \n");
+            return 1;
+        }
+
+
+        if(chdir(destination) != 0 ){ //On ne peut pas ouvrir le fichier
+            perror("Vous ne pouvez pas ouvrir le fichier\n");
+            free(destination);
+            free(tmp);
+            return 1;
+        }
+
+        //lastRef = strdup(tmp);
+        int a = setenv("OLDPWD", tmp, 1);
+        
+
+        //ref = getcwd(NULL, 0);
+        int b = setenv("PWD", getcwd(NULL, 0), 1);
+
+        free(destination);
+        free(tmp);
+        return 0;
+    }
+
+
 }
 
 

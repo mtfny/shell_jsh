@@ -48,16 +48,17 @@ int main(int argc, char const *argv[])
     rl_outstream = stderr;
     char *line ;
 
-    char *chemin_courant = getcwd(NULL,0);
+    //char *chemin_courant = getcwd(NULL,0);
+    
 
     int nb_job = 0;
     struct job *tableau_job = malloc(nb_job * sizeof(struct job));
+    char *chemin_courant = getenv("PWD");
     
 
     while (1)
     {
         job_update();
-
         prompt(chemin_courant,nb_job);
         line = readline("$ ");
         
@@ -71,35 +72,17 @@ int main(int argc, char const *argv[])
         add_history(line);
 
         // traitement de l'instruction donnée par l'utilisateur
-        pid_t pid = fork();
-
-       if (pid == -1) {
-            perror("Erreur lors de la création du processus fils");
-            exit(EXIT_FAILURE);
-        }
-        if (pid == 0) {
             
-            appel(chemin_courant, line);
-
-            // Libération de la mémoire allouée par readline
-            free(line);
-
-            // Sortie du processus fils
-            exit(EXIT_SUCCESS);
-        } 
-        else {
-            // Attendre la fin du processus fils dans le processus parent
-            int status;
-            waitpid(pid, &status, 0);
-        }
-
+        appel(line);
+            
+        chemin_courant = getenv("PWD");
+           
         // Libération de la mémoire allouée par readline
         free(line);
        
     }
 
 
-    free(chemin_courant);
   
     return 0;
 }
