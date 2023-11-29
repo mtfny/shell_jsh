@@ -86,24 +86,26 @@ int appel(const char *instruction){
         res = 0;
     }
 
-    if (strcmp(words[0],"pwd") == 0)
+     if (strcmp(words[0],"pwd") == 0)
     {
         res = pwd(numWords ,words);  
     }
 
-    if (strcmp(words[0],"cd") == 0){
+    else if (strcmp(words[0],"cd") == 0){
         res = cd(numWords , words);
     }
 
-    if (strcmp(words[0],"?") == 0){
+    else if (strcmp(words[0],"?") == 0){
         res = interogation(numWords , words);
     } 
 
-    if (strcmp(words[0],"exit") == 0){
+    else if (strcmp(words[0],"exit") == 0){
         res = my_exit(numWords , words);
-    } else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
+    } 
+    else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
     }
+
 
     //if (strcmp(words[0],"ls") == 0){
        // printf("test d'ls\n");
@@ -115,10 +117,10 @@ int appel(const char *instruction){
     free(inputString);
     liberer_mots(words);
 
-    //char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
+    char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
     // Utilisation de sprintf pour convertir l'entier en chaîne de caractères
-   // sprintf(buffer, "%d", res);
-    //int c =setenv("LAST_RET",buffer,1);
+    sprintf(buffer, "%d", res);
+    int c =setenv("LAST_RET",buffer,1);
     
     return res;
 } 
@@ -264,6 +266,7 @@ int my_exit(int argc, char *argv[]){
 
 
 int cmd_externe(int argc, char *argv[]){
+    int ret = 0;
     // Créer un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
     char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));
     if (new_argv == NULL) {
@@ -291,6 +294,7 @@ int cmd_externe(int argc, char *argv[]){
 
         // Exécuter la commande externe avec les arguments fournis
         if (execvp(new_argv[0], new_argv) == -1) {
+            ret = 1;
             // Afficher un message d'erreur plus informatif
            
             switch (errno)
@@ -306,9 +310,13 @@ int cmd_externe(int argc, char *argv[]){
                 break;
             }
             // Terminer le processus fils en cas d'erreur
-            free(new_argv);  // Libérer la mémoire en cas d'erreur
             exit(EXIT_FAILURE);
+        } else{
+            ret = 0;
         }
+        
+
+
     } else {
         // Code du processus parent
 
@@ -326,13 +334,13 @@ int cmd_externe(int argc, char *argv[]){
         // Vérifier le statut de sortie du processus fils
         if (WIFEXITED(status)) {
             // Le processus fils s'est terminé normalement
-            return 0;
+            return ret;
         } else {
             return 1;
         }
     }
 
-    return 1;//normalement pas atteint mais sinon on a un warning
+    return ret;//normalement pas atteint mais sinon on a un warning
 
 }
 
