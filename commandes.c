@@ -68,6 +68,7 @@ int appel(const char *instruction){
     if (inputString == NULL) {
         perror("Allocation memory error");
         exit(EXIT_FAILURE);
+        //return 0;
     }
 
     if (strcmp(instruction, "") == 0)
