@@ -107,6 +107,7 @@ int appel(const char *instruction){
         res = cmd_externe(numWords,words);
     }
 
+
     //if (strcmp(words[0],"ls") == 0){
        // printf("test d'ls\n");
        // res = ls(numWords,words);
@@ -273,6 +274,7 @@ int my_exit(int argc, char *argv[]){
 
 
 int cmd_externe(int argc, char *argv[]){
+    int ret = 0;
     // Créer un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
     char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));
     if (new_argv == NULL) {
@@ -300,6 +302,7 @@ int cmd_externe(int argc, char *argv[]){
 
         // Exécuter la commande externe avec les arguments fournis
         if (execvp(new_argv[0], new_argv) == -1) {
+            ret = 1;
             // Afficher un message d'erreur plus informatif
            
             switch (errno)
@@ -315,8 +318,9 @@ int cmd_externe(int argc, char *argv[]){
                 break;
             }
             // Terminer le processus fils en cas d'erreur
-            free(new_argv);  // Libérer la mémoire en cas d'erreur
             exit(EXIT_FAILURE);
+        } else{
+            ret = 0;
         }
         exit(EXIT_SUCCESS);
     } else {
@@ -342,7 +346,7 @@ int cmd_externe(int argc, char *argv[]){
         }
     }
 
-    return 1;//normalement pas atteint mais sinon on a un warning
+    return ret;//normalement pas atteint mais sinon on a un warning
 
 }
 
