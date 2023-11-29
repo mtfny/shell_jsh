@@ -70,6 +70,12 @@ int appel(const char *instruction){
         perror("Allocation memory error");
         exit(EXIT_FAILURE);
     }
+
+    if (strcmp(instruction, "") == 0)
+    {
+        free(inputString);
+        return 0;
+    }
     
     int numWords;
 
