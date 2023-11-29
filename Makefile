@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -lreadline
-LDFLAGS = -lm
+CFLAGS = 
+LDFLAGS = -lm -lreadline
 
 # Liste des fichiers source
 SRCS = main.c commandes.c
