@@ -101,14 +101,14 @@ int appel(const char *instruction){
 
     if (strcmp(words[0],"exit") == 0){
         res = my_exit(numWords , words);
-    } 
-
-    if (strcmp(words[0],"ls") == 0){
-        printf("test d'ls\n");
-        res = ls(numWords,words);
-    }else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
+    } else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
     }
+
+    //if (strcmp(words[0],"ls") == 0){
+       // printf("test d'ls\n");
+       // res = ls(numWords,words);
+    
     
     
 
@@ -261,62 +261,7 @@ int my_exit(int argc, char *argv[]){
     return 0;
 }
 
-int ls(int argc, char *argv[]){
-    int r = 1;
-    //on fait un fork pour que execvp ne prenne pas la place du père
-    pid_t child_pid = fork();
 
-    if (child_pid == -1) {
-        perror("Erreur lors de la création du processus fils");
-        return 1;
-    }
-
-
-     if (child_pid == 0) {
-        // Construire la liste des arguments pour execvp
-        char *ls_args[argc + 2];  // +2 pour le nom de la commande et NULL à la fin
-
-        ls_args[0] = "ls";
-        for (int i = 1; i <= argc; i++) {
-            ls_args[i] = argv[i];
-        }
-        ls_args[argc + 1] = NULL;
-
-
-        // Exécuter la commande ls
-        if (execvp("ls", ls_args) == -1) {
-            perror("Erreur lors de l'exécution de ls");
-             exit(EXIT_FAILURE);
-        }
-
-    }else {
-        // Code du processus parent
-
-        // Attendre que le processus fils se termine
-        int status;
-        if (waitpid(child_pid, &status, 0) == -1) {
-            perror("Erreur lors de l'attente du processus fils");
-            return 1;
-        }
-
-        // Vérifier le statut de sortie du processus fils
-        if (WIFEXITED(status)) {
-            // Le processus fils s'est terminé normalement
-            return 0;
-        } else {
-            // Le processus fils s'est terminé de manière anormale
-            fprintf(stderr, "Le processus fils s'est terminé de manière anormale\n");
-            return 1;
-        }
-    }
-
-    return r;
-}
-
-
-/*
-
-*/
 
 int cmd_externe(int argc, char *argv[]){
     // Créer un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
@@ -357,7 +302,7 @@ int cmd_externe(int argc, char *argv[]){
                 perror("commande inexistante");
                 break;
             default:
-             perror("Erreur ");
+             perror("jsh");
                 break;
             }
             // Terminer le processus fils en cas d'erreur
@@ -386,6 +331,8 @@ int cmd_externe(int argc, char *argv[]){
             return 1;
         }
     }
+
+    return 1;//normalement pas atteint mais sinon on a un warning
 
 }
 
