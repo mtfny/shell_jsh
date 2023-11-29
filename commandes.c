@@ -103,6 +103,11 @@ int appel(const char *instruction){
         res = my_exit(numWords , words);
     } 
 
+    if (strcmp(words[0],"ls") == 0){
+        res = ls(numWords,words);
+    }
+    
+
     free(inputString);
     liberer_mots(words);
 
@@ -252,61 +257,61 @@ int my_exit(int argc, char *argv[]){
     return 0;
 }
 
-
-/*
-
-int ls(char *PATH){}
-/*ajouter un fork*/
 int ls(int argc, char *argv[]){
-    int res = 0;
-    if (argc > 3) {//on vérifie que le nombre d'argument est bon
-        fprintf(stderr, "Utilisation incorrecte : ls nécessite 0 à 2 arguments\n");
-        return 1;
-    }
-    pid_t pid = fork();
+    int r = 1;
+    //on fait un fork pour que execvp ne prenne pas la place du père
+    pid_t child_pid = fork();
 
-    if (pid < 0) {
-        perror("fork");
+    if (child_pid == -1) {
+        perror("Erreur lors de la création du processus fils");
         return 1;
     }
 
-    char* ls_args[4];
-    ls_args[0] = "ls";
 
-    if (argc == 2) {
-        // Un argument, par exemple, "-l"
-        ls_args[1] = argv[1];
-        ls_args[2] = NULL;  // Marqueur de fin pour execvp
-    } else if (argc == 3) {
-        // Deux arguments, par exemple, "-l" et "arg2"
-        ls_args[1] = argv[1];
-        ls_args[2] = argv[2];
-        ls_args[3] = NULL;  // Marqueur de fin pour execvp
-    } else {
-        // Aucun argument
-        ls_args[1] = NULL;  // Marqueur de fin pour execvp
-    }
+     if (child_pid == 0) {
+        // Construire la liste des arguments pour execvp
+        char *ls_args[argc + 2];  // +2 pour le nom de la commande et NULL à la fin
 
-    if (execvp("ls", ls_args) < 0) {
-        // Si nous atteignons cette ligne, cela signifie que execvp a échoué
-        perror("execvp");
-        return 1;  // Indiquer une erreur
-    }
+        ls_args[0] = "ls";
+        for (int i = 1; i <= argc; i++) {
+            ls_args[i] = argv[i];
+        }
+        ls_args[argc + 1] = NULL;
 
-     if (pid == 0) {
-        // Code du processus fils
 
-        if (execvp("ls", ls_args) < 0) {
-            res =1;
-            perror("execvp");
-             // En cas d'échec, le processus fils se termine de manière anormale
+        // Exécuter la commande ls
+        if (execvp("ls", ls_args) == -1) {
+            perror("Erreur lors de l'exécution de ls");
+             exit(EXIT_FAILURE);
+        }
+
+    }else {
+        // Code du processus parent
+
+        // Attendre que le processus fils se termine
+        int status;
+        if (waitpid(child_pid, &status, 0) == -1) {
+            perror("Erreur lors de l'attente du processus fils");
+            return 1;
+        }
+
+        // Vérifier le statut de sortie du processus fils
+        if (WIFEXITED(status)) {
+            // Le processus fils s'est terminé normalement
+            return 0;
+        } else {
+            // Le processus fils s'est terminé de manière anormale
+            fprintf(stderr, "Le processus fils s'est terminé de manière anormale\n");
+            return 1;
         }
     }
 
-    // Si nous atteignons cette ligne, cela signifie que execvp a réussi
-    return res;  // Indiquer le succès
-
+    return r;
 }
+
+
+
+
 
 /*
 
