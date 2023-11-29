@@ -79,7 +79,7 @@ int appel(const char *instruction){
     
     int numWords;
 
-    char** words = splitString(inputString, &numWords);
+    char **words = splitString(inputString, &numWords);
 
     if (words[0] == NULL) // aucune instruction n'a été donnée
     {
@@ -104,7 +104,7 @@ int appel(const char *instruction){
     } 
 
     free(inputString);
-    free(words);
+    liberer_mots(words);
 
     char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
     // Utilisation de sprintf pour convertir l'entier en chaîne de caractères
@@ -256,6 +256,63 @@ int my_exit(int argc, char *argv[]){
 /*
 
 int ls(char *PATH){}
+/*ajouter un fork*/
+int ls(int argc, char *argv[]){
+    int res = 0;
+    if (argc > 3) {//on vérifie que le nombre d'argument est bon
+        fprintf(stderr, "Utilisation incorrecte : ls nécessite 0 à 2 arguments\n");
+        return 1;
+    }
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        return 1;
+    }
+
+    char* ls_args[4];
+    ls_args[0] = "ls";
+
+    if (argc == 2) {
+        // Un argument, par exemple, "-l"
+        ls_args[1] = argv[1];
+        ls_args[2] = NULL;  // Marqueur de fin pour execvp
+    } else if (argc == 3) {
+        // Deux arguments, par exemple, "-l" et "arg2"
+        ls_args[1] = argv[1];
+        ls_args[2] = argv[2];
+        ls_args[3] = NULL;  // Marqueur de fin pour execvp
+    } else {
+        // Aucun argument
+        ls_args[1] = NULL;  // Marqueur de fin pour execvp
+    }
+
+    if (execvp("ls", ls_args) < 0) {
+        // Si nous atteignons cette ligne, cela signifie que execvp a échoué
+        perror("execvp");
+        return 1;  // Indiquer une erreur
+    }
+
+     if (pid == 0) {
+        // Code du processus fils
+
+        if (execvp("ls", ls_args) < 0) {
+            res =1;
+            perror("execvp");
+             // En cas d'échec, le processus fils se termine de manière anormale
+        }
+    }
+
+    // Si nous atteignons cette ligne, cela signifie que execvp a réussi
+    return res;  // Indiquer le succès
+
+}
+
+/*
+
+int pwd(const char *chemin_courant){}
+
+
 
 int cp(char *fic1,*har *fic2){}
 
