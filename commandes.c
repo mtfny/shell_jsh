@@ -119,7 +119,7 @@ int appel(const char *instruction){
 
     char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
     // Utilisation de sprintf pour convertir l'entier en chaîne de caractères
-   sprintf(buffer, "%d", res);
+    sprintf(buffer, "%d", res);
     int c =setenv("LAST_RET",buffer,1);
     
     return res;
@@ -310,7 +310,6 @@ int cmd_externe(int argc, char *argv[]){
                 break;
             }
             // Terminer le processus fils en cas d'erreur
-            free(new_argv);  // Libérer la mémoire en cas d'erreur
             exit(EXIT_FAILURE);
         } else{
             ret = 0;
