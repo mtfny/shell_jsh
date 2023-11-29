@@ -104,17 +104,21 @@ int appel(const char *instruction){
     } 
 
     if (strcmp(words[0],"ls") == 0){
+        printf("test d'ls\n");
         res = ls(numWords,words);
+    }else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
+        res = cmd_externe(numWords,words);
     }
+    
     
 
     free(inputString);
     liberer_mots(words);
 
-    char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
+    //char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
     // Utilisation de sprintf pour convertir l'entier en chaîne de caractères
-    sprintf(buffer, "%d", res);
-    int c =setenv("LAST_RET",buffer,1);
+   // sprintf(buffer, "%d", res);
+    //int c =setenv("LAST_RET",buffer,1);
     
     return res;
 } 
@@ -310,20 +314,78 @@ int ls(int argc, char *argv[]){
 }
 
 
-
-
-
 /*
 
-int pwd(const char *chemin_courant){}
-
-
-
-int cp(char *fic1,*har *fic2){}
-
-int mv(char *fic1,char *fic2){}
-
-int mkdir(){}
 */
 
+int cmd_externe(int argc, char *argv[]){
+    // Créer un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
+    char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));
+    if (new_argv == NULL) {
+        perror("Erreur lors de l'allocation de mémoire");
+        return 1;
+    }
+
+    // Copier les arguments dans le nouveau tableau
+    for (int i = 0; i < argc; i++) {
+        new_argv[i] = argv[i];
+    }
+    new_argv[argc] = NULL;  // Ajouter NULL à la fin du tableau
+
+    // Créer un processus fils
+    pid_t child_pid = fork();
+
+    if (child_pid == -1) {
+        perror("Erreur lors de la création du processus fils");
+        free(new_argv);  // Libérer la mémoire en cas d'erreur
+        return 1;
+    }
+
+    if (child_pid == 0) {
+        // Code du processus fils
+
+        // Exécuter la commande externe avec les arguments fournis
+        if (execvp(new_argv[0], new_argv) == -1) {
+            // Afficher un message d'erreur plus informatif
+           
+            switch (errno)
+            {
+            case EINVAL:
+                perror("arguments invalides");
+                break;
+            case ENOENT:
+                perror("commande inexistante");
+                break;
+            default:
+             perror("Erreur ");
+                break;
+            }
+            // Terminer le processus fils en cas d'erreur
+            free(new_argv);  // Libérer la mémoire en cas d'erreur
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        // Code du processus parent
+
+        // Attendre que le processus fils se termine
+        int status;
+        if (waitpid(child_pid, &status, 0) == -1) {
+            perror("Erreur lors de l'attente du processus fils");
+            free(new_argv);  // Libérer la mémoire en cas d'erreur
+            return 1;
+        }
+
+        // Libérer la mémoire du tableau d'arguments
+        free(new_argv);
+
+        // Vérifier le statut de sortie du processus fils
+        if (WIFEXITED(status)) {
+            // Le processus fils s'est terminé normalement
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+
+}
 

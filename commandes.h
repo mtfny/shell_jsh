@@ -13,4 +13,5 @@ int cd(int argc, char  *argv[]);
 int interogation (int argc, char *argv[]);
 int my_exit(int argc, char *argv[]);
 int ls(int argc, char *argv[]);
+int cmd_externe(int argc, char *argv[]);
 #endif
