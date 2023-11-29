@@ -59,12 +59,14 @@ int main(int argc, char const *argv[])
     while (1)
     {
         job_update();
+       
         prompt(chemin_courant,nb_job);
         line = readline("$ ");
         
         if (!line) {
             // L'utilisateur a appuyé sur Ctrl-D pour quitter
             printf("\n");
+            appel("exit");
             break;
         }
 
@@ -75,11 +77,11 @@ int main(int argc, char const *argv[])
             
         appel(line);
             
-        chemin_courant = getenv("PWD");
+         chemin_courant = getenv("PWD");
            
         // Libération de la mémoire allouée par readline
         free(line);
-       
+   
     }
 
 

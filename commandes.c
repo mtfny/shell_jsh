@@ -51,7 +51,6 @@ void liberer_mots(char **mots) {
     for (int i = 0; mots[i] != NULL; i++) {
         free(mots[i]);
     }
-    free(mots);
 }
 
 /*int appel_commande_speciale(){  [À FAIRE]
@@ -69,6 +68,7 @@ int appel(const char *instruction){
     if (inputString == NULL) {
         perror("Allocation memory error");
         exit(EXIT_FAILURE);
+        //return 0;
     }
 
     if (strcmp(instruction, "") == 0)
@@ -86,7 +86,7 @@ int appel(const char *instruction){
         res = 0;
     }
 
-     if (strcmp(words[0],"pwd") == 0)
+    else if (strcmp(words[0],"pwd") == 0)
     {
         res = pwd(numWords ,words);  
     }
@@ -102,6 +102,7 @@ int appel(const char *instruction){
     else if (strcmp(words[0],"exit") == 0){
         res = my_exit(numWords , words);
     } 
+    
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
     }
@@ -120,7 +121,7 @@ int appel(const char *instruction){
     char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
     // Utilisation de sprintf pour convertir l'entier en chaîne de caractères
     sprintf(buffer, "%d", res);
-    int c =setenv("LAST_RET",buffer,1);
+    int c =setenv("?",buffer,1);
     
     return res;
 } 
@@ -231,12 +232,12 @@ int interogation (int argc, char *argv[]){
         printf("? : Trop d'arguments donnés en paramètre\n");
     }
 
-    if(getenv("LAST_RET") == NULL){ 
+    if(getenv("?") == NULL){ 
         printf("? : Aucune commande récente\n");
         return 1;
     }
     
-    printf("%d\n", atoi(getenv("LAST_RET")));
+    printf("%d\n", atoi(getenv("?")));
     return 0;
 
 }
@@ -248,14 +249,21 @@ int my_exit(int argc, char *argv[]){
     }
 
     if(argc == 2){
-        printf("exit avec la valeur %d", atoi(argv[1]));
+        printf("exit avec la valeur %d\n", atoi(argv[1]));
+
+        char buffer[20];  
+        snprintf(buffer, sizeof(buffer), "%d", atoi(argv[1]));
+        int c =setenv("?",buffer,1);
+        
+        printf("dfdfdf %d \n", c);
         exit(atoi(argv[1]));
+        return(atoi(argv[1]));
     }else {
-        if (getenv("LAST_RET") != NULL){
-            printf("exit avec la valeur %d", atoi(getenv("LAST_RET")));
-            exit(atoi(getenv("LAST_RET")));
+        if (getenv("?") != NULL){
+            printf("exit avec la valeur %d\n", atoi(getenv("?")));
+            exit(atoi(getenv("?")));
         }else{
-            printf("exit avec la valeur 0");
+            printf("exit avec la valeur 0\n");
             exit(0);
         }
     }
@@ -314,9 +322,7 @@ int cmd_externe(int argc, char *argv[]){
         } else{
             ret = 0;
         }
-        
-
-
+        exit(EXIT_SUCCESS);
     } else {
         // Code du processus parent
 
@@ -334,7 +340,7 @@ int cmd_externe(int argc, char *argv[]){
         // Vérifier le statut de sortie du processus fils
         if (WIFEXITED(status)) {
             // Le processus fils s'est terminé normalement
-            return ret;
+            return WEXITSTATUS(status) ;
         } else {
             return 1;
         }
