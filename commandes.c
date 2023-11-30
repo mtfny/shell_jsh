@@ -44,6 +44,8 @@ char** splitString(char* String, int* numWords) {
         sep = strtok(NULL, " ");
     }
 
+    words[*numWords] = NULL;
+
     return words;
 }
 
