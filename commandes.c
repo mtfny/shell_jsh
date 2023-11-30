@@ -22,18 +22,18 @@ char** splitString(char* String, int* numWords) {
         exit(EXIT_FAILURE);
     }
 
-    char* token = strtok(String, " ");
+    char* sep = strtok(String, " ");
     *numWords = 0;
 
-    while (token != NULL) {
-        words[*numWords] = (char*)malloc((strlen(token) + 1) * sizeof(char));
+    while (sep != NULL) {
+        words[*numWords] = (char*)malloc((strlen(sep) + 1) * sizeof(char));
 
         if (words[*numWords] == NULL) {
             perror("Erreur lors de l'allocation de mémoire");
             exit(EXIT_FAILURE);
         }
 
-        strcpy(words[*numWords], token);
+        strcpy(words[*numWords], sep);
         (*numWords)++;
 
         if (*numWords >= 1024) {
@@ -41,7 +41,7 @@ char** splitString(char* String, int* numWords) {
             exit(EXIT_FAILURE);
         }
 
-        token = strtok(NULL, " ");
+        sep = strtok(NULL, " ");
     }
 
     return words;
@@ -52,13 +52,6 @@ void liberer_mots(char **mots) {
         free(mots[i]);
     }
 }
-
-/*int appel_commande_speciale(){  [À FAIRE]
- int res;
-
-
- return res;
-}*/
 
 /*c'est cette fonction qui va appeler la bonne commande */
 int appel(const char *instruction){
@@ -120,21 +113,20 @@ int appel(const char *instruction){
 
 int pwd(int argc, char *argv[]){
     if (argc > 1){
-        perror("pwd\n");
+        fprintf(stderr,"pwd\n");
         return 1;
     }
     char *cwd;
-    char buff [PATH_MAX + 1];
 
     cwd = getenv("PWD");
 
-    if (cwd != NULL)
+    if (cwd!= NULL)
     {
         printf("%s\n",cwd);
         return 0;
     }
 
-    perror("getcwd pour pwd");
+    free(cwd);
     return 1;
     
 } 
@@ -153,7 +145,7 @@ int isDirecrory(char const *chemin) {
             return 1;
         }
     } else {
-        //Si lstat échoue, cela peut signifier que le fichier n'existe pas
+        //le fichier n'existe pas
         return 2;
     }
 }
