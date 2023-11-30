@@ -14,22 +14,22 @@
 
 
 
-char** splitString(char* inputString, int* numWords) {
+char** splitString(char* String, int* numWords) {
     char** words = (char**)malloc(1024 * sizeof(char*));
 
     if (words == NULL) {
-        perror("Allocation memory error");
+        perror("Erreur lors de l'allocation de mémoire");
         exit(EXIT_FAILURE);
     }
 
-    char* token = strtok(inputString, " ");
+    char* token = strtok(String, " ");
     *numWords = 0;
 
     while (token != NULL) {
         words[*numWords] = (char*)malloc((strlen(token) + 1) * sizeof(char));
 
         if (words[*numWords] == NULL) {
-            perror("Allocation memory error");
+            perror("Erreur lors de l'allocation de mémoire");
             exit(EXIT_FAILURE);
         }
 
@@ -37,7 +37,7 @@ char** splitString(char* inputString, int* numWords) {
         (*numWords)++;
 
         if (*numWords >= 1024) {
-            fprintf(stderr, "Too many words, increase MAX_WORDS\n");
+            fprintf(stderr, "Trop long\n");
             exit(EXIT_FAILURE);
         }
 
@@ -63,9 +63,9 @@ void liberer_mots(char **mots) {
 /*c'est cette fonction qui va appeler la bonne commande */
 int appel(const char *instruction){
     int res = 1;
-    char* inputString = strdup(instruction);  // Utilisation de strdup pour allouer dynamiquement de la mémoire
+    char* dupInstruction = strdup(instruction);  
 
-    if (inputString == NULL) {
+    if (dupInstruction == NULL) {
         perror("Allocation memory error");
         exit(EXIT_FAILURE);
         //return 0;
@@ -73,15 +73,15 @@ int appel(const char *instruction){
 
     if (strcmp(instruction, "") == 0)
     {
-        free(inputString);
+        free(dupInstruction);
         return 0;
     }
     
     int numWords;
 
-    char **words = splitString(inputString, &numWords);
+    char **words = splitString(dupInstruction, &numWords);
 
-    if (words[0] == NULL) // aucune instruction n'a été donnée
+    if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
     {
         res = 0;
     }
@@ -100,35 +100,27 @@ int appel(const char *instruction){
     } 
 
     else if (strcmp(words[0],"exit") == 0){
-        res = my_exit(numWords , words);
+        my_exit(numWords , words);
     } 
     
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
     }
 
-
-    //if (strcmp(words[0],"ls") == 0){
-       // printf("test d'ls\n");
-       // res = ls(numWords,words);
-    
-    
-    
-
-    free(inputString);
+    free(dupInstruction);
     liberer_mots(words);
 
-    char buffer[20];  // Choisissez une taille suffisamment grande pour contenir la représentation de l'entier
-    // Utilisation de sprintf pour convertir l'entier en chaîne de caractères
+    char buffer[20];  //pour pouvoir stocker la valeur de retour
+    // convertion l'entier en chaîne de caractères
     sprintf(buffer, "%d", res);
-    int c =setenv("?",buffer,1);
+    int c = setenv("?",buffer,1); //On stock la valeur dans une variable d'environnement
     
     return res;
 } 
 
 int pwd(int argc, char *argv[]){
     if (argc > 1){
-        printf("pwd : Trop d'arguments donnés en paramètre\n");
+        perror("pwd\n");
         return 1;
     }
     char *cwd;
@@ -150,18 +142,18 @@ int pwd(int argc, char *argv[]){
 
 int isDirecrory(char const *chemin) {
 
-    struct stat file_info;
+    struct stat file_info;//Pour pouvoir stocker les informations sur le fichier
 
-    // Utilisation de lstat pour obtenir des informations sur le fichier ou le répertoire
+    //On recupère les informations sur le fichier passé en paramètre
     if (lstat(chemin, &file_info) == 0) {
-        // Vérifier si c'est un répertoire
+        //On vérifie que ce soit bien un répertoire
         if (S_ISDIR(file_info.st_mode)) {
             return 0;
         } else {
             return 1;
         }
     } else {
-        // Si lstat échoue, cela peut signifier que le fichier n'existe pas
+        //Si lstat échoue, cela peut signifier que le fichier n'existe pas
         return 2;
     }
 }
@@ -194,6 +186,7 @@ int cd (int argc, char *argv[])
                 strcpy(destination, argv[1]);
             }
         }
+
         char *tmp = getcwd(NULL, 0);
 
 
@@ -212,13 +205,11 @@ int cd (int argc, char *argv[])
             return 1;
         }
 
-        //lastRef = strdup(tmp);
+        //On mets à jour les variables d'environnement
         int a = setenv("OLDPWD", tmp, 1);
-        
-
-        //ref = getcwd(NULL, 0);
         int b = setenv("PWD", getcwd(NULL, 0), 1);
 
+        //On libère la mémoire
         free(destination);
         free(tmp);
         return 0;
@@ -232,6 +223,7 @@ int interogation (int argc, char *argv[]){
         printf("? : Trop d'arguments donnés en paramètre\n");
     }
 
+    //Si la dernière valeur de retour n'est pas definie, on a rien à renvoyer 
     if(getenv("?") == NULL){ 
         printf("? : Aucune commande récente\n");
         return 1;
@@ -242,10 +234,10 @@ int interogation (int argc, char *argv[]){
 
 }
 
-int my_exit(int argc, char *argv[]){
+void my_exit(int argc, char *argv[]){
     if(argc > 2){
-        printf("exit : Trop d'arguments donnés en paramètre\n");
-        return 1;
+        perror("exit : Trop d'arguments donnés en paramètre\n");
+        return;
     }
 
     if(argc == 2){
@@ -253,80 +245,71 @@ int my_exit(int argc, char *argv[]){
 
         char buffer[20];  
         snprintf(buffer, sizeof(buffer), "%d", atoi(argv[1]));
-        int c =setenv("?",buffer,1);
-        
-        printf("dfdfdf %d \n", c);
+        int c =setenv("?",buffer,1); //on change la dernière valeur de retour avec celle fourni
+
         exit(atoi(argv[1]));
-        return(atoi(argv[1]));
-    }else {
-        if (getenv("?") != NULL){
+    }else {//S'il n'y a pas d'argument
+        if (getenv("?") != NULL){ //Si la dernière valeur de retour est definie, on la renvoie
             printf("exit avec la valeur %d\n", atoi(getenv("?")));
             exit(atoi(getenv("?")));
-        }else{
+        }else{//Sinon on renvoie 0
             printf("exit avec la valeur 0\n");
             exit(0);
         }
     }
-
-    return 0;
 }
 
 
 
 int cmd_externe(int argc, char *argv[]){
     int ret = 0;
-    // Créer un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
+    //Création d'un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
     char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));
     if (new_argv == NULL) {
         perror("Erreur lors de l'allocation de mémoire");
         return 1;
     }
 
-    // Copier les arguments dans le nouveau tableau
+    //Copie des arguments dans le nouveau tableau
     for (int i = 0; i < argc; i++) {
         new_argv[i] = argv[i];
     }
-    new_argv[argc] = NULL;  // Ajouter NULL à la fin du tableau
+    new_argv[argc] = NULL;  //Ajouter NULL à la fin du tableau
 
-    // Créer un processus fils
+    //On fait un fork pour qu'execvp ne prenne pas la place du père
     pid_t child_pid = fork();
 
     if (child_pid == -1) {
         perror("Erreur lors de la création du processus fils");
-        free(new_argv);  // Libérer la mémoire en cas d'erreur
+        free(new_argv);  
         return 1;
     }
 
     if (child_pid == 0) {
-        // Code du processus fils
-
-        // Exécuter la commande externe avec les arguments fournis
-        if (execvp(new_argv[0], new_argv) == -1) {
+        //On execute la commande externe avec les arguments fournis
+        if (execvp(new_argv[0], new_argv) == -1) { //on verifie qu'il n'y a pas eu d'echec
             ret = 1;
-            // Afficher un message d'erreur plus informatif
-           
+        //Si echec, on identifie l'erreur pour fournir un message plus détaillé
             switch (errno)
             {
             case EINVAL:
-                perror("arguments invalides");
+                perror("Arguments invalides");
                 break;
             case ENOENT:
-                perror("commande inexistante");
+                perror("Commande inexistante");
                 break;
             default:
              perror("jsh");
                 break;
             }
-            // Terminer le processus fils en cas d'erreur
-            exit(EXIT_FAILURE);
+            exit(EXIT_FAILURE);//On termine
         } else{
             ret = 0;
         }
         exit(EXIT_SUCCESS);
     } else {
         // Code du processus parent
-
-        // Attendre que le processus fils se termine
+        // On attend que le processus fils (execvp) se termine
         int status;
         if (waitpid(child_pid, &status, 0) == -1) {
             perror("Erreur lors de l'attente du processus fils");
@@ -336,11 +319,9 @@ int cmd_externe(int argc, char *argv[]){
 
         // Libérer la mémoire du tableau d'arguments
         free(new_argv);
-
-        // Vérifier le statut de sortie du processus fils
+        //On vérifie que le processus s'est terminé correctement
         if (WIFEXITED(status)) {
-            // Le processus fils s'est terminé normalement
-            return WEXITSTATUS(status) ;
+            return WEXITSTATUS(status) ;//On retoure valeur fourni par le processus fils (la commande effectuée)
         } else {
             return 1;
         }
