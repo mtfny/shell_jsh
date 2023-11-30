@@ -47,8 +47,8 @@ char** splitString(char* String, int* numWords) {
     return words;
 }
 
-void liberer_mots(char **mots) {
-    for (int i = 0; mots[i] != NULL; i++) {
+void liberer_mots(char **mots,int taille) {
+    for (int i = 0; i < taille; i++) {
         free(mots[i]);
     }
 }
@@ -101,7 +101,7 @@ int appel(const char *instruction){
     }
 
     free(dupInstruction);
-    liberer_mots(words);
+    liberer_mots(words,numWords);
 
     char buffer[20];  //pour pouvoir stocker la valeur de retour
     // convertion l'entier en chaîne de caractères

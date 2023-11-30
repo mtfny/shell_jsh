@@ -7,7 +7,7 @@ struct commandes
 
 //fontions auxiliaires
 char** splitString(char* inputString, int* numWords);
-void liberer_mots(char **mots) ;
+void liberer_mots(char **mots,int taille) ;
 
 //Fonctions pour les commandes
 int appel(const char *instruction );
