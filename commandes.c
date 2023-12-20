@@ -11,7 +11,9 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "job.h"
 
+static job_list jobs;
 
 
 char** splitString(char* String, int* numWords) {
@@ -253,7 +255,10 @@ void my_exit(int argc, char *argv[]){
     }
 }
 
-
+void init_jobs()
+{
+    init_job_list(&jobs);
+}
 
 int cmd_externe(int argc, char *argv[]){
     int ret = 0;
@@ -264,12 +269,18 @@ int cmd_externe(int argc, char *argv[]){
         return 1;
     }
 
+    int arriere_plan = 1;
+    if (strcmp(argv[argc-1], "&") == 0){
+        arriere_plan = 0;
+        argc --;
+    }
+
     //Copie des arguments dans le nouveau tableau
     for (int i = 0; i < argc; i++) {
         new_argv[i] = argv[i];
     }
     new_argv[argc] = NULL;  //Ajouter NULL à la fin du tableau
-
+    
     //On fait un fork pour qu'execvp ne prenne pas la place du père
     pid_t child_pid = fork();
 
@@ -304,21 +315,32 @@ int cmd_externe(int argc, char *argv[]){
     } else {
         // Code du processus parent
         // On attend que le processus fils (execvp) se termine
-        int status;
-        if (waitpid(child_pid, &status, 0) == -1) {
+        int status;        
+        if (waitpid(child_pid, &status, arriere_plan == 0 ? WNOHANG : 0) == -1) {
+
             perror("Erreur lors de l'attente du processus fils");
             free(new_argv);  // Libérer la mémoire en cas d'erreur
             return 1;
         }
 
+        //le processus est lancé a l'arrière plan 
+        if (arriere_plan == 0 && (!WIFEXITED(status))){
+            pid_t pgid = getpgid(child_pid);
+            job job_en_cours;
+            init_job(&job_en_cours,1, pgid, new_argv);
+            add_job_to_list(&jobs, &job_en_cours);
+        }
+
         // Libérer la mémoire du tableau d'arguments
         free(new_argv);
         //On vérifie que le processus s'est terminé correctement
-        if (WIFEXITED(status)) {
-            return WEXITSTATUS(status) ;//On retoure valeur fourni par le processus fils (la commande effectuée)
-        } else {
-            return 1;
+        if(arriere_plan == 1)
+        {
+            //On retoure valeur fourni par le processus fils (la commande effectuée)
+            if (WIFEXITED(status)) return WEXITSTATUS(status) ;
+            else ret= 1;
         }
+    
     }
 
     return ret;//normalement pas atteint mais sinon on a un warning

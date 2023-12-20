@@ -16,6 +16,7 @@ int isDirecrory(char const *chemin);
 int cd(int argc, char  *argv[]);
 int interogation (int argc, char *argv[]);
 void my_exit(int argc, char *argv[]);
+void init_jobs();
 int cmd_externe(int argc, char *argv[]);
 
 
