@@ -12,7 +12,6 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "commandes.h"
-#include "job.h"
 
 #define MAX_PROMPT_LENGTH 30
 #define MAX_PATH_LENGTH 512
@@ -50,9 +49,14 @@ int main(int argc, char const *argv[])
 
     //char *chemin_courant = getcwd(NULL,0);
     
+    // Initialise les jobs
+    //job_list jobs;
+    //init_job_list(&jobs);
+    //init_job_list(&static_job_list);
+    init_jobs();
 
     int nb_job = 0;
-    struct job *tableau_job = malloc(nb_job * sizeof(struct job));
+    //struct job *tableau_job = malloc(nb_job * sizeof(struct job));
     char *chemin_courant = getenv("PWD");
     
 
