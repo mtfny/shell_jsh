@@ -99,6 +99,10 @@ int appel(const char *instruction){
     else if (strcmp(words[0],"exit") == 0){
         my_exit(numWords , words);
     } 
+
+    else if (strcmp(words[0],"jobs") == 0){
+        res = cmd_jobs(numWords , words);
+    } 
     
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
@@ -327,7 +331,7 @@ int cmd_externe(int argc, char *argv[]){
         if (arriere_plan == 0 && (!WIFEXITED(status))){
             pid_t pgid = getpgid(child_pid);
             job job_en_cours;
-            init_job(&job_en_cours,1, pgid, new_argv);
+            init_job(&job_en_cours,job_get_size(&jobs)+1, child_pid, new_argv);
             add_job_to_list(&jobs, &job_en_cours);
         }
 
@@ -345,5 +349,23 @@ int cmd_externe(int argc, char *argv[]){
 
     return ret;//normalement pas atteint mais sinon on a un warning
 
+}
+
+int cmd_jobs(int argc, char *argv[])
+{
+    if (argc == 1) 
+    {
+        print_job_list(&jobs);
+        return 0;
+    }
+    else if  (argc == 2 && strncmp(argv[1], "%", 1) == 0)
+    {
+        char *num_job = (char *)malloc(strlen(argv[1]));
+        strcpy(num_job, argv[1] + 1);
+        int ret = print_job_int(&jobs, atoi(num_job)); 
+        free(num_job);
+        return ret;
+    }
+    else return 1;
 }
 

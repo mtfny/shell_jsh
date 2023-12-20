@@ -32,4 +32,8 @@ typedef struct {
 void init_job_list(job_list *list);
 void print_job_list(job_list *list);
 void add_job_to_list(job_list *list, const job *new_job);
+int job_get_size(job_list *jobs);
+int print_job_int(job_list *jobs, int job);
+
+
 #endif

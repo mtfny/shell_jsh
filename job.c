@@ -70,6 +70,7 @@ void init_job(job *new_job, int num, pid_t pid, char **command ) {
     new_job->etat = RUNNING;  
 
     concatenate_strings(command, new_job->commande);
+    printJob(new_job);
 }
 
 typedef struct {
@@ -104,10 +105,12 @@ void add_job_to_list(job_list *jobs, const job *new_job) {
         exit(EXIT_FAILURE);
     }
 
+    // Copie directe de la structure job
     memcpy(&(new_node->current_job), new_job, sizeof(job));
+
     new_node->next = NULL;
 
-    if (jobs->head == NULL) {
+    if (jobs->size == 0) {
         // Si la liste est vide, le nouveau noeud devient la tête de la liste
         jobs->head = new_node;
     } else {
@@ -122,8 +125,35 @@ void add_job_to_list(job_list *jobs, const job *new_job) {
     // Actualiser la taille
     jobs->size++;
     //test 
-    print_job_list(jobs);
 }
+
+int job_get_size(job_list *jobs)
+{
+    return jobs->size;
+}
+
+int print_job_int(job_list *jobs, int job)
+{
+    if(jobs->size == 0 || job == 0) return 1;
+    else
+    {
+        job_node *current = jobs->head;
+
+        while (current != NULL)
+        {
+            if(current->current_job.num == job) 
+            {
+                printJob(&(current->current_job));
+                return 0;
+            }
+            current = current->next;
+        }
+        return 1; 
+    }
+}
+
+
+
 
 
 
