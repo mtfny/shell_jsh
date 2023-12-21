@@ -1,4 +1,5 @@
 #include "commandes.h"
+#include "redirection.h"
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +59,85 @@ void liberer_mots(char **mots,int taille) {
     }
 }
 
+commande parseCommand(const char *instruction){
+    commande cmd = {0};
+    char *temp = strdup(instruction); // Copie temporaire pour le parsing
+    char *part;
+    char *nextPart;
+
+    // Initialisation des valeurs par défaut
+    cmd.appendOutput = 0;
+    cmd.overwriteOutput = 0;
+    cmd.appendError = 0;
+    cmd.overwriteError = 0;
+    cmd.redir = 0;
+
+    // Analyse de la commande et des redirections
+    part = strtok(temp, " ");
+    while (part != NULL) {
+        nextPart = strtok(NULL, " "); 
+
+        if (strcmp(part, "<") == 0 && nextPart != NULL) {
+            cmd.inputFile = strdup(nextPart);
+            cmd.redir = 0;
+            part = strtok(NULL, " "); // on passe le nom du fichier
+        } else if (strcmp(part, ">") == 0 && nextPart != NULL) {
+            cmd.outputFile = strdup(nextPart);
+            cmd.overwriteOutput = 1;
+            cmd.redir = 1;
+            part = strtok(NULL, " "); // on passe le nom du fichier
+        }else if (strcmp(part, ">|") == 0 && nextPart != NULL) {
+            cmd.outputFile = strdup(nextPart);
+            cmd.appendOutput = 1;
+            cmd.redir = 2;
+            part = strtok(NULL, " "); // on passe le nom du fichier
+        }else if (strcmp(part, ">>") == 0 && nextPart != NULL) {
+            cmd.outputFile = strdup(nextPart);
+            cmd.appendOutput = 1;
+            cmd.redir = 3;
+            part = strtok(NULL, " "); // on passe le nom du fichier
+        } else if (strcmp(part, "2>") == 0 && nextPart != NULL) {
+            cmd.errorFile = strdup(nextPart);
+            cmd.overwriteError = 1;
+            cmd.redir = 4;
+            part = strtok(NULL, " "); // on passe le nom du fichier
+        } else if (strcmp(part, "2>>") == 0 && nextPart != NULL) {
+            cmd.errorFile = strdup(nextPart);
+            cmd.appendError = 1;
+            cmd.redir = 5;
+            part = strtok(NULL, " "); // on passe le nom du fichier
+        }else if (strcmp(part, "2>|") == 0 && nextPart != NULL) {
+            cmd.errorFile = strdup(nextPart);
+            cmd.appendError = 1;
+            cmd.redir = 6;
+            part = strtok(NULL, " "); // on passe le nom du fichier
+        }else {
+            // Partie de la commande principale
+            if (!cmd.cmd) {
+                cmd.cmd = strdup(part);
+            } else {
+                // Concaténation des mots composant la commande
+                char *newCmd = malloc(strlen(cmd.cmd) + strlen(part) + 2);
+                sprintf(newCmd, "%s %s", cmd.cmd, part);
+                free(cmd.cmd);
+                cmd.cmd = newCmd;
+            }
+        }
+
+        part = nextPart; 
+    }
+   // printf("%s",cmd.cmd);
+    free(temp); // Libérer la copie temporaire
+    return cmd;
+}
+
+void freeCommande(commande *cmd) {
+    free(cmd->inputFile);
+    free(cmd->outputFile);
+    free(cmd->errorFile);
+    free(cmd->cmd);
+}
+
 /*c'est cette fonction qui va appeler la bonne commande */
 int appel(const char *instruction){
     int res = 1;
@@ -78,7 +158,15 @@ int appel(const char *instruction){
     int numWords;
 
     char **words = splitString(dupInstruction, &numWords);
+   /* if (!isRedirection(instruction))  tentative pour les redirections mais n'a pas fonctionné
+    {
+        printf("oui c'est bon je vais parse\n");
+        commande parsed = parseCommand(instruction);
+       // printf("c'est parse\n go executer\n");
+        executeRedir(&parsed);
 
+
+    }else{*/
     if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
     {
         res = 0;
@@ -109,6 +197,8 @@ int appel(const char *instruction){
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
     }
+   //}
+
 
     free(dupInstruction);
     liberer_mots(words,numWords);
