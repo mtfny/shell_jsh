@@ -99,7 +99,8 @@ int appel(const char *instruction){
     } 
 
     else if (strcmp(words[0],"exit") == 0){
-        res = my_exit(numWords , words);
+        my_exit(numWords , words);
+        res = 1;
     } 
 
     else if (strcmp(words[0],"jobs") == 0){
@@ -236,16 +237,16 @@ int interogation (int argc, char *argv[]){
 
 }
 
-int my_exit(int argc, char *argv[]){
+void my_exit(int argc, char *argv[]){
     if(argc > 2){
         perror("exit : Trop d'arguments donnés en paramètre\n");
-        return 1;
+        return;
     }
     if(job_get_size(&jobs)>0)
     {
         const char *msg = "Un job est en cours ou suspendu\n";
         write(2, msg, strlen(msg));
-        return 1;
+        return;
     }
 
     if(argc == 2){
