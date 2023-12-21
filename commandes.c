@@ -14,8 +14,7 @@
 #include "job.h"
 #include <signal.h>
 
-static job_list jobs;
-static job_list jobs_done;
+
 
 
 char** splitString(char* String, int* numWords) {
@@ -242,7 +241,7 @@ void my_exit(int argc, char *argv[]){
         perror("exit : Trop d'arguments donnés en paramètre\n");
         return;
     }
-    if(job_get_size(&jobs)>0)
+    if(job_get_size()>0)
     {
         const char *msg = "Un job est en cours ou suspendu\n";
         write(2, msg, strlen(msg));
@@ -250,7 +249,7 @@ void my_exit(int argc, char *argv[]){
     }
 
     if(argc == 2){
-        printf("exit avec la valeur %d\n", atoi(argv[1]));
+        //printf("exit avec la valeur %d\n", atoi(argv[1]));
 
         char buffer[20];  
         snprintf(buffer, sizeof(buffer), "%d", atoi(argv[1]));
@@ -259,10 +258,10 @@ void my_exit(int argc, char *argv[]){
         exit(atoi(argv[1]));
     }else {//S'il n'y a pas d'argument
         if (getenv("?") != NULL){ //Si la dernière valeur de retour est definie, on la renvoie
-            printf("exit avec la valeur %d\n", atoi(getenv("?")));
+            //printf("exit avec la valeur %d\n", atoi(getenv("?")));
             exit(atoi(getenv("?")));
         }else{//Sinon on renvoie 0
-            printf("exit avec la valeur 0\n");
+            //printf("exit avec la valeur 0\n");
             exit(0);
         }
     }
@@ -270,8 +269,7 @@ void my_exit(int argc, char *argv[]){
 
 void init_jobs()
 {
-    init_job_list(&jobs);
-    init_job_list(&jobs_done);
+    init_job_list();
 }
 
 int cmd_externe(int argc, char *argv[]){
@@ -332,7 +330,7 @@ int cmd_externe(int argc, char *argv[]){
         // Code du processus parent
         // On attend que le processus fils (execvp) se termine
         int status;        
-        if (waitpid(child_pid, &status, arriere_plan == 0 ? WNOHANG : 0) == -1) {
+        if (waitpid(child_pid, &status, (arriere_plan == 0 ? WNOHANG : 0) | WUNTRACED) == -1) {
 
             perror("Erreur lors de l'attente du processus fils");
             free(new_argv);  // Libérer la mémoire en cas d'erreur
@@ -340,22 +338,22 @@ int cmd_externe(int argc, char *argv[]){
         }
 
         //le processus est lancé a l'arrière plan 
-        if (arriere_plan == 0 && (!WIFEXITED(status))){
+        if (arriere_plan == 0){
             pid_t pgid = getpgid(child_pid);
             job job_en_cours;
-            init_job(&job_en_cours,job_get_size(&jobs)+1, child_pid, new_argv);
-            add_job_to_list(&jobs, &job_en_cours);
+            init_job(&job_en_cours,job_get_size()+1, child_pid, new_argv);
+            add_job_to_jobs(&job_en_cours);
         }
 
         // Libérer la mémoire du tableau d'arguments
         free(new_argv);
         //On vérifie que le processus s'est terminé correctement
-        if(arriere_plan == 1)
-        {
-            //On retoure valeur fourni par le processus fils (la commande effectuée)
-            if (WIFEXITED(status)) return WEXITSTATUS(status) ;
-            else ret= 1;
-        }
+        
+        //On retoure valeur fourni par le processus fils (la commande effectuée)
+        if (WIFEXITED(status)) return WEXITSTATUS(status) ;
+        else ret= 1;
+        
+    
     
     }
 
@@ -367,14 +365,14 @@ int cmd_jobs(int argc, char *argv[])
 {
     if (argc == 1) 
     {
-        print_job_list(&jobs);
+        print_jobs();
         return 0;
     }
     else if  (argc == 2 && strncmp(argv[1], "%", 1) == 0)
     {
         char *num_job = (char *)malloc(strlen(argv[1]));
         strcpy(num_job, argv[1] + 1);
-        int ret = print_job_int(&jobs, atoi(num_job)); 
+        int ret = print_job_int(atoi(num_job)); 
         free(num_job);
         return ret;
     }
@@ -383,31 +381,17 @@ int cmd_jobs(int argc, char *argv[])
 
 void update()
 {
-    job_update(&jobs_done);
+    job_update();
 
      
 
     //afficher jobs_done 
-    //vider jobs_done 
+    //vider jobs_done
 }
 
-void sigchld_handler(int signum) 
-{
-    pid_t pid;
-    int status;
 
-    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        //printf("Le processus enfant avec PID %d s'est terminé.\n", pid);
-
-        // Ici, vous pouvez mettre à jour votre liste de jobs
-        // Par exemple, marquer le job correspondant au PID comme terminé
-
-        //Ajouté à job_done le job de pid "pid"
-        add_to_jobs_done(pid, &jobs, &jobs_done);
-    }
-}
 
 int cmd_jobs_size()
 {
-    return job_get_size(&jobs);
+    return job_get_size();
 }

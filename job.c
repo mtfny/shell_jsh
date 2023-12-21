@@ -10,7 +10,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 
+
+static int val_retour = 0;
 
 enum STATE{
     RUNNING, STOPPED, DETACHED, KILLED, DONE
@@ -24,30 +27,42 @@ typedef struct
     char commande[255];
 }job;
 
+typedef struct {
+    job current_job;
+    struct job_node *next;
+} job_node;
+
+typedef struct {
+    int size;
+    job_node *head;
+} job_list;
+
+static job_list jobs;
+static job_list jobs_done;
 
 void printJob(const job *j) {
     const char *print_etat;
     switch (j->etat)
     {
     case RUNNING:
-        print_etat = "RUNNING";
+        print_etat = "Running";
         break;
     case STOPPED:
-        print_etat = "STOPPED";
+        print_etat = "Stopped";
         break;
     case DETACHED:
-        print_etat = "DETACHED";
+        print_etat = "Detached";
         break;
     case KILLED:
-        print_etat = "KILLED";
+        print_etat = "Killed";
         break;
     case DONE:
-        print_etat = "DONE";
+        print_etat = "Done";
         break;
 
     }
 
-    char output[255]; // Buffer de sortie
+    char output[255]; 
     int len = snprintf(output, sizeof(output), "[%d] %d %s %s\n", j->num, j->pid, print_etat, j->commande);
     
     if (len < 0) {
@@ -84,22 +99,6 @@ void init_job(job *new_job, int num, pid_t pid, char **command ) {
     printJob(new_job);
 }
 
-typedef struct {
-    job current_job;
-    struct job_node *next;
-} job_node;
-
-typedef struct {
-    int size;
-    job_node *head;
-} job_list;
-
-
-void init_job_list(job_list *list) {
-    list->size =0;
-    list->head = NULL;
-}
-
 void print_job_list(job_list *list) {
     job_node *current = list->head;
 
@@ -107,6 +106,11 @@ void print_job_list(job_list *list) {
         printJob(&(current->current_job));
         current = current->next;
     }
+}
+
+void print_jobs()
+{
+    print_job_list(&jobs);
 }
 
 void add_job_to_list(job_list *jobs, const job *new_job) {
@@ -125,7 +129,7 @@ void add_job_to_list(job_list *jobs, const job *new_job) {
         // Si la liste est vide, le nouveau noeud devient la tête de la liste
         jobs->head = new_node;
     } else {
-        // Sinon, parcourir la liste jusqu'à la fin et ajouter le nouveau nœud
+        // Sinon, parcourir la liste jusqu'à la fin et ajouter le nouveau noeud
         job_node *current = jobs->head;
         while (current->next != NULL) {
             current = current->next;
@@ -137,18 +141,77 @@ void add_job_to_list(job_list *jobs, const job *new_job) {
     jobs->size++;
     //test 
 }
+void add_job_to_list_bis(const job *new_job) {
+    job_node *new_node = (job_node *)malloc(sizeof(job_node));
+    if (new_node == NULL) {
+        perror("Erreur d'allocation mémoire");
+        exit(EXIT_FAILURE);
+    }
 
-int job_get_size(job_list *jobs)
-{
-    return jobs->size;
+    // Copie directe de la structure job
+    memcpy(&(new_node->current_job), new_job, sizeof(job));
+
+    // Faire pointer le nouveau nœud vers l'ancienne tête de liste
+    new_node->next = jobs_done.head;
+
+    // Faire du nouveau nœud la nouvelle tête de liste
+    jobs_done.head = new_node;
+
+    // Actualiser la taille
+    jobs_done.size++;
 }
 
-int print_job_int(job_list *jobs, int job)
+void add_to_jobs_done()
 {
-    if(jobs->size == 0 || job == 0) return 1;
+    job_node *current = jobs.head;
+
+    while (current != NULL)
+    {
+       pid_t pid = current->current_job.pid;
+        int status;
+
+        pid_t result = waitpid(pid, &status, WNOHANG);
+
+        if (result == 0) {
+            // Le processus enfant n'a pas encore terminé
+        } else if (result == pid) {
+            // Le processus enfant a terminé
+            if (WIFEXITED(status)) {
+                // Le processus enfant a terminé normalement
+                //printf("azalakapaino\n");
+                current->current_job.etat = DONE;
+                add_job_to_list_bis( &(current->current_job));
+                jobs.size --;
+                int exit_status = WEXITSTATUS(status);
+                
+            }
+        } else {
+            // Erreur a gerer 
+        }
+        
+        current = current->next;
+    }
+}
+
+
+void add_job_to_jobs(const job *new_job)
+{
+    add_job_to_list(&jobs, new_job);
+    
+    
+}
+
+int job_get_size()
+{
+    return jobs.size;
+}
+
+int print_job_int(int job)
+{
+    if(jobs.size == 0 || job == 0) return 1;
     else
     {
-        job_node *current = jobs->head;
+        job_node *current = jobs.head;
 
         while (current != NULL)
         {
@@ -163,34 +226,27 @@ int print_job_int(job_list *jobs, int job)
     }
 }
 
-void job_update(job_list *jobs_done)
+void job_update()
 {
-   print_job_list(jobs_done);
-   jobs_done->size = 0;
-   jobs_done->head = NULL;
+    add_to_jobs_done();
+    print_job_list(&jobs_done);
+    jobs_done.size = 0;
+    jobs_done.head = NULL;
 
 }
 
-void add_to_jobs_done(pid_t pid, job_list *jobs, job_list *jobs_done)
-{
-    job_node *current = jobs->head;
+void init_job_list() {
+    jobs.size =0;
+    jobs.head = NULL;
 
-    while (current != NULL)
-    {
-        if(current->current_job.pid == pid) 
-        {
-            current->current_job.etat = DONE;
-               
-            add_job_to_list(jobs_done, &(current->current_job));
-            jobs->size--;
-        }
-        
-        current = current->next;
-    }
+    jobs_done.size =0;
+    jobs_done.head = NULL;
+
+    //signal(SIGCHLD, sigchld_handler);
 }
 
-
-
-
-
+int get_val_retour()
+{
+    return val_retour;    
+}
 
