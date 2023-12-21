@@ -35,11 +35,11 @@ void print_job_list(job_list *list);
 void print_jobs();
 void add_job_to_list(job_list *jobs, const job *new_job);
 void add_job_to_jobs(const job *new_job);
+void add_job_to_list_bis(const job *new_job);
 int job_get_size();
 int print_job_int(int job);
 void job_update();
 void add_to_jobs_done(pid_t pid);
-void sigchld_handler(int signum) ;
 int get_val_retour();
 
 

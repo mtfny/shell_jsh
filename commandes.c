@@ -249,7 +249,7 @@ void my_exit(int argc, char *argv[]){
     }
 
     if(argc == 2){
-        printf("exit avec la valeur %d\n", atoi(argv[1]));
+        //printf("exit avec la valeur %d\n", atoi(argv[1]));
 
         char buffer[20];  
         snprintf(buffer, sizeof(buffer), "%d", atoi(argv[1]));
@@ -258,10 +258,10 @@ void my_exit(int argc, char *argv[]){
         exit(atoi(argv[1]));
     }else {//S'il n'y a pas d'argument
         if (getenv("?") != NULL){ //Si la dernière valeur de retour est definie, on la renvoie
-            printf("exit avec la valeur %d\n", atoi(getenv("?")));
+            //printf("exit avec la valeur %d\n", atoi(getenv("?")));
             exit(atoi(getenv("?")));
         }else{//Sinon on renvoie 0
-            printf("exit avec la valeur 0\n");
+            //printf("exit avec la valeur 0\n");
             exit(0);
         }
     }
@@ -330,15 +330,15 @@ int cmd_externe(int argc, char *argv[]){
         // Code du processus parent
         // On attend que le processus fils (execvp) se termine
         int status;        
-        if (waitpid(child_pid, &status, arriere_plan == 0 ? WNOHANG : 0) == -1) {
+        if (waitpid(child_pid, &status, (arriere_plan == 0 ? WNOHANG : 0) | WUNTRACED) == -1) {
 
-            //perror("Erreur lors de l'attente du processus fils");
-            //free(new_argv);  // Libérer la mémoire en cas d'erreur
-            //return 1;
+            perror("Erreur lors de l'attente du processus fils");
+            free(new_argv);  // Libérer la mémoire en cas d'erreur
+            return 1;
         }
 
         //le processus est lancé a l'arrière plan 
-        if (arriere_plan == 0 && (!WIFEXITED(status))){
+        if (arriere_plan == 0){
             pid_t pgid = getpgid(child_pid);
             job job_en_cours;
             init_job(&job_en_cours,job_get_size()+1, child_pid, new_argv);
@@ -348,13 +348,12 @@ int cmd_externe(int argc, char *argv[]){
         // Libérer la mémoire du tableau d'arguments
         free(new_argv);
         //On vérifie que le processus s'est terminé correctement
-        if(arriere_plan == 1)
-        {
-            //On retoure valeur fourni par le processus fils (la commande effectuée)
-            //if (WIFEXITED(status)) return WEXITSTATUS(status) ;
-            //else ret= 1;
-            return get_val_retour();
-        }
+        
+        //On retoure valeur fourni par le processus fils (la commande effectuée)
+        if (WIFEXITED(status)) return WEXITSTATUS(status) ;
+        else ret= 1;
+        
+    
     
     }
 
@@ -387,7 +386,7 @@ void update()
      
 
     //afficher jobs_done 
-    //vider jobs_done 
+    //vider jobs_done
 }
 
 

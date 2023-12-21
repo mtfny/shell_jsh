@@ -45,24 +45,24 @@ void printJob(const job *j) {
     switch (j->etat)
     {
     case RUNNING:
-        print_etat = "RUNNING";
+        print_etat = "Running";
         break;
     case STOPPED:
-        print_etat = "STOPPED";
+        print_etat = "Stopped";
         break;
     case DETACHED:
-        print_etat = "DETACHED";
+        print_etat = "Detached";
         break;
     case KILLED:
-        print_etat = "KILLED";
+        print_etat = "Killed";
         break;
     case DONE:
-        print_etat = "DONE";
+        print_etat = "Done";
         break;
 
     }
 
-    char output[255]; // Buffer de sortie
+    char output[255]; 
     int len = snprintf(output, sizeof(output), "[%d] %d %s %s\n", j->num, j->pid, print_etat, j->commande);
     
     if (len < 0) {
@@ -129,7 +129,7 @@ void add_job_to_list(job_list *jobs, const job *new_job) {
         // Si la liste est vide, le nouveau noeud devient la tête de la liste
         jobs->head = new_node;
     } else {
-        // Sinon, parcourir la liste jusqu'à la fin et ajouter le nouveau nœud
+        // Sinon, parcourir la liste jusqu'à la fin et ajouter le nouveau noeud
         job_node *current = jobs->head;
         while (current->next != NULL) {
             current = current->next;
@@ -141,42 +141,58 @@ void add_job_to_list(job_list *jobs, const job *new_job) {
     jobs->size++;
     //test 
 }
+void add_job_to_list_bis(const job *new_job) {
+    job_node *new_node = (job_node *)malloc(sizeof(job_node));
+    if (new_node == NULL) {
+        perror("Erreur d'allocation mémoire");
+        exit(EXIT_FAILURE);
+    }
 
-void add_to_jobs_done(pid_t pid)
+    // Copie directe de la structure job
+    memcpy(&(new_node->current_job), new_job, sizeof(job));
+
+    // Faire pointer le nouveau nœud vers l'ancienne tête de liste
+    new_node->next = jobs_done.head;
+
+    // Faire du nouveau nœud la nouvelle tête de liste
+    jobs_done.head = new_node;
+
+    // Actualiser la taille
+    jobs_done.size++;
+}
+
+void add_to_jobs_done()
 {
     job_node *current = jobs.head;
 
     while (current != NULL)
     {
-        if(current->current_job.pid == pid) 
-        {
-            current->current_job.etat = DONE;
-               
-            add_job_to_list(&jobs_done, &(current->current_job));
-            jobs.size--;
+       pid_t pid = current->current_job.pid;
+        int status;
+
+        pid_t result = waitpid(pid, &status, WNOHANG);
+
+        if (result == 0) {
+            // Le processus enfant n'a pas encore terminé
+        } else if (result == pid) {
+            // Le processus enfant a terminé
+            if (WIFEXITED(status)) {
+                // Le processus enfant a terminé normalement
+                //printf("azalakapaino\n");
+                current->current_job.etat = DONE;
+                add_job_to_list_bis( &(current->current_job));
+                jobs.size --;
+                int exit_status = WEXITSTATUS(status);
+                
+            }
+        } else {
+            // Erreur a gerer 
         }
         
         current = current->next;
     }
 }
 
-void sigchld_handler(int signum) 
-{
-    pid_t pid;
-    int status;
-
-    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        //printf("Le processus enfant avec PID %d s'est terminé.\n", pid);
-
-        // Ici, vous pouvez mettre à jour votre liste de jobs
-        // Par exemple, marquer le job correspondant au PID comme terminé
-
-        //Ajouté à job_done le job de pid "pid"
-        add_to_jobs_done(pid);
-    }
-    if (WIFEXITED(status)) val_retour = WEXITSTATUS(status) ;
-    else val_retour = 1;
-}
 
 void add_job_to_jobs(const job *new_job)
 {
@@ -212,9 +228,10 @@ int print_job_int(int job)
 
 void job_update()
 {
-   print_job_list(&jobs_done);
-   jobs_done.size = 0;
-   jobs_done.head = NULL;
+    add_to_jobs_done();
+    print_job_list(&jobs_done);
+    jobs_done.size = 0;
+    jobs_done.head = NULL;
 
 }
 
@@ -225,15 +242,11 @@ void init_job_list() {
     jobs_done.size =0;
     jobs_done.head = NULL;
 
-    signal(SIGCHLD, sigchld_handler);
+    //signal(SIGCHLD, sigchld_handler);
 }
 
 int get_val_retour()
 {
     return val_retour;    
 }
-
-
-
-
 
