@@ -12,8 +12,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "job.h"
+#include <signal.h>
 
 static job_list jobs;
+static job_list jobs_done;
 
 
 char** splitString(char* String, int* numWords) {
@@ -97,7 +99,11 @@ int appel(const char *instruction){
     } 
 
     else if (strcmp(words[0],"exit") == 0){
-        my_exit(numWords , words);
+        res = my_exit(numWords , words);
+    } 
+
+    else if (strcmp(words[0],"jobs") == 0){
+        res = cmd_jobs(numWords , words);
     } 
     
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
@@ -230,10 +236,16 @@ int interogation (int argc, char *argv[]){
 
 }
 
-void my_exit(int argc, char *argv[]){
+int my_exit(int argc, char *argv[]){
     if(argc > 2){
         perror("exit : Trop d'arguments donnés en paramètre\n");
-        return;
+        return 1;
+    }
+    if(job_get_size(&jobs)>0)
+    {
+        const char *msg = "Un job est en cours ou suspendu\n";
+        write(2, msg, strlen(msg));
+        return 1;
     }
 
     if(argc == 2){
@@ -258,9 +270,12 @@ void my_exit(int argc, char *argv[]){
 void init_jobs()
 {
     init_job_list(&jobs);
+    init_job_list(&jobs_done);
 }
 
 int cmd_externe(int argc, char *argv[]){
+ //       signal(SIGCHLD, sigchld_handler);
+
     int ret = 0;
     //Création d'un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
     char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));
@@ -327,7 +342,7 @@ int cmd_externe(int argc, char *argv[]){
         if (arriere_plan == 0 && (!WIFEXITED(status))){
             pid_t pgid = getpgid(child_pid);
             job job_en_cours;
-            init_job(&job_en_cours,1, pgid, new_argv);
+            init_job(&job_en_cours,job_get_size(&jobs)+1, child_pid, new_argv);
             add_job_to_list(&jobs, &job_en_cours);
         }
 
@@ -347,3 +362,51 @@ int cmd_externe(int argc, char *argv[]){
 
 }
 
+int cmd_jobs(int argc, char *argv[])
+{
+    if (argc == 1) 
+    {
+        print_job_list(&jobs);
+        return 0;
+    }
+    else if  (argc == 2 && strncmp(argv[1], "%", 1) == 0)
+    {
+        char *num_job = (char *)malloc(strlen(argv[1]));
+        strcpy(num_job, argv[1] + 1);
+        int ret = print_job_int(&jobs, atoi(num_job)); 
+        free(num_job);
+        return ret;
+    }
+    else return 1;
+}
+
+void update()
+{
+    job_update(&jobs_done);
+
+     
+
+    //afficher jobs_done 
+    //vider jobs_done 
+}
+
+void sigchld_handler(int signum) 
+{
+    pid_t pid;
+    int status;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        //printf("Le processus enfant avec PID %d s'est terminé.\n", pid);
+
+        // Ici, vous pouvez mettre à jour votre liste de jobs
+        // Par exemple, marquer le job correspondant au PID comme terminé
+
+        //Ajouté à job_done le job de pid "pid"
+        add_to_jobs_done(pid, &jobs, &jobs_done);
+    }
+}
+
+int cmd_jobs_size()
+{
+    return job_get_size(&jobs);
+}

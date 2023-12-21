@@ -15,9 +15,12 @@ int pwd(int argc, char *argv[]);
 int isDirecrory(char const *chemin);
 int cd(int argc, char  *argv[]);
 int interogation (int argc, char *argv[]);
-void my_exit(int argc, char *argv[]);
+int my_exit(int argc, char *argv[]);
 void init_jobs();
 int cmd_externe(int argc, char *argv[]);
-
+int cmd_jobs(int argc, char *argv[]);
+void update();
+void sigchld_handler(int signum);
+int cmd_jobs_size();
 
 #endif
