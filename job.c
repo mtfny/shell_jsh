@@ -46,8 +46,19 @@ void printJob(const job *j) {
         break;
 
     }
-    printf("[%d] %d %s %s\n", j->num, j->pid, print_etat, j->commande);
 
+    char output[255]; // Buffer de sortie
+    int len = snprintf(output, sizeof(output), "[%d] %d %s %s\n", j->num, j->pid, print_etat, j->commande);
+    
+    if (len < 0) {
+        perror("Erreur lors de la construction de la chaîne de sortie");
+        return;
+    }
+    
+    // Écriture du contenu dans stderr
+    if (write(STDERR_FILENO, output, len) < 0) {
+        perror("Erreur lors de l'écriture sur stderr");
+    }
 
 } 
 
@@ -152,7 +163,31 @@ int print_job_int(job_list *jobs, int job)
     }
 }
 
+void job_update(job_list *jobs_done)
+{
+   print_job_list(jobs_done);
+   jobs_done->size = 0;
+   jobs_done->head = NULL;
 
+}
+
+void add_to_jobs_done(pid_t pid, job_list *jobs, job_list *jobs_done)
+{
+    job_node *current = jobs->head;
+
+    while (current != NULL)
+    {
+        if(current->current_job.pid == pid) 
+        {
+            current->current_job.etat = DONE;
+               
+            add_job_to_list(jobs_done, &(current->current_job));
+            jobs->size--;
+        }
+        
+        current = current->next;
+    }
+}
 
 
 

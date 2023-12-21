@@ -16,9 +16,6 @@
 #define MAX_PROMPT_LENGTH 30
 #define MAX_PATH_LENGTH 512
 
-void job_update(){
-    /*mettre à jour le nombre de jobs et le tableau*/
-}
 
 void prompt(const char *path,int jobs){
     char prompt[MAX_PROMPT_LENGTH];
@@ -55,15 +52,15 @@ int main(int argc, char const *argv[])
     //init_job_list(&static_job_list);
     init_jobs();
 
-    int nb_job = 0;
+    int nb_job = cmd_jobs_size();
     //struct job *tableau_job = malloc(nb_job * sizeof(struct job));
     char *chemin_courant = getenv("PWD");
     
 
     while (1)
     {
-        job_update();
-       
+        update();
+        nb_job = cmd_jobs_size();
         prompt(chemin_courant,nb_job);
         line = readline("$ ");
         

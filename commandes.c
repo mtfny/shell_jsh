@@ -12,8 +12,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "job.h"
+#include <signal.h>
 
 static job_list jobs;
+static job_list jobs_done;
 
 
 char** splitString(char* String, int* numWords) {
@@ -262,9 +264,12 @@ void my_exit(int argc, char *argv[]){
 void init_jobs()
 {
     init_job_list(&jobs);
+    init_job_list(&jobs_done);
 }
 
 int cmd_externe(int argc, char *argv[]){
+ //       signal(SIGCHLD, sigchld_handler);
+
     int ret = 0;
     //Création d'un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
     char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));
@@ -369,3 +374,33 @@ int cmd_jobs(int argc, char *argv[])
     else return 1;
 }
 
+void update()
+{
+    job_update(&jobs_done);
+
+     
+
+    //afficher jobs_done 
+    //vider jobs_done 
+}
+
+void sigchld_handler(int signum) 
+{
+    pid_t pid;
+    int status;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        //printf("Le processus enfant avec PID %d s'est terminé.\n", pid);
+
+        // Ici, vous pouvez mettre à jour votre liste de jobs
+        // Par exemple, marquer le job correspondant au PID comme terminé
+
+        //Ajouté à job_done le job de pid "pid"
+        add_to_jobs_done(pid, &jobs, &jobs_done);
+    }
+}
+
+int cmd_jobs_size()
+{
+    return job_get_size(&jobs);
+}
