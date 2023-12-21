@@ -195,7 +195,7 @@ int cd (int argc, char *argv[])
 
         if (isDirecrory(destination) != 0){ //Si le fichier n'existe pas, ou existe mais n'est pas un répertoire
             free(destination);
-            free(tmp);
+            //free(tmp);
             printf("cd : Chemin non valide \n");
             return 1;
         }
@@ -204,7 +204,7 @@ int cd (int argc, char *argv[])
         if(chdir(destination) != 0 ){ //On ne peut pas ouvrir le fichier
             printf("cd : Vous ne pouvez pas ouvrir le fichier\n");
             free(destination);
-            free(tmp);
+            //free(tmp);
             return 1;
         }
 
@@ -214,7 +214,7 @@ int cd (int argc, char *argv[])
 
         //On libère la mémoire
         free(destination);
-        free(tmp);
+        //free(tmp);
         return 0;
     } 
 
