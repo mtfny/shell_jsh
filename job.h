@@ -14,11 +14,6 @@ typedef struct
     char commande [50];
 }job;
 
-
-void printJob(const job *j);
-void concatenate_strings(char **strings, char *result);
-void init_job(job *new_job, int num, pid_t pid, char **command);
-
 typedef struct {
     job current_job;
     struct job_list_node *next;
@@ -29,13 +24,23 @@ typedef struct {
     job_node *head;
 } job_list;
 
-void init_job_list(job_list *list);
+
+void printJob(const job *j);
+void concatenate_strings(char **strings, char *result);
+void init_job(job *new_job, int num, pid_t pid, char **command);
+
+
+void init_job_list();
 void print_job_list(job_list *list);
-void add_job_to_list(job_list *list, const job *new_job);
-int job_get_size(job_list *jobs);
-int print_job_int(job_list *jobs, int job);
-void job_update(job_list *jobs);
-void add_to_jobs_done(pid_t pid, job_list *jobs, job_list *jobs_done);
+void print_jobs();
+void add_job_to_list(job_list *jobs, const job *new_job);
+void add_job_to_jobs(const job *new_job);
+int job_get_size();
+int print_job_int(int job);
+void job_update();
+void add_to_jobs_done(pid_t pid);
+void sigchld_handler(int signum) ;
+int get_val_retour();
 
 
 #endif

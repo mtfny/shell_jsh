@@ -10,7 +10,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 
+
+static int val_retour = 0;
 
 enum STATE{
     RUNNING, STOPPED, DETACHED, KILLED, DONE
@@ -24,6 +27,18 @@ typedef struct
     char commande[255];
 }job;
 
+typedef struct {
+    job current_job;
+    struct job_node *next;
+} job_node;
+
+typedef struct {
+    int size;
+    job_node *head;
+} job_list;
+
+static job_list jobs;
+static job_list jobs_done;
 
 void printJob(const job *j) {
     const char *print_etat;
@@ -84,22 +99,6 @@ void init_job(job *new_job, int num, pid_t pid, char **command ) {
     printJob(new_job);
 }
 
-typedef struct {
-    job current_job;
-    struct job_node *next;
-} job_node;
-
-typedef struct {
-    int size;
-    job_node *head;
-} job_list;
-
-
-void init_job_list(job_list *list) {
-    list->size =0;
-    list->head = NULL;
-}
-
 void print_job_list(job_list *list) {
     job_node *current = list->head;
 
@@ -107,6 +106,11 @@ void print_job_list(job_list *list) {
         printJob(&(current->current_job));
         current = current->next;
     }
+}
+
+void print_jobs()
+{
+    print_job_list(&jobs);
 }
 
 void add_job_to_list(job_list *jobs, const job *new_job) {
@@ -138,17 +142,60 @@ void add_job_to_list(job_list *jobs, const job *new_job) {
     //test 
 }
 
-int job_get_size(job_list *jobs)
+void add_to_jobs_done(pid_t pid)
 {
-    return jobs->size;
+    job_node *current = jobs.head;
+
+    while (current != NULL)
+    {
+        if(current->current_job.pid == pid) 
+        {
+            current->current_job.etat = DONE;
+               
+            add_job_to_list(&jobs_done, &(current->current_job));
+            jobs.size--;
+        }
+        
+        current = current->next;
+    }
 }
 
-int print_job_int(job_list *jobs, int job)
+void sigchld_handler(int signum) 
 {
-    if(jobs->size == 0 || job == 0) return 1;
+    pid_t pid;
+    int status;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        //printf("Le processus enfant avec PID %d s'est terminé.\n", pid);
+
+        // Ici, vous pouvez mettre à jour votre liste de jobs
+        // Par exemple, marquer le job correspondant au PID comme terminé
+
+        //Ajouté à job_done le job de pid "pid"
+        add_to_jobs_done(pid);
+    }
+    if (WIFEXITED(status)) val_retour = WEXITSTATUS(status) ;
+    else val_retour = 1;
+}
+
+void add_job_to_jobs(const job *new_job)
+{
+    add_job_to_list(&jobs, new_job);
+    
+    
+}
+
+int job_get_size()
+{
+    return jobs.size;
+}
+
+int print_job_int(int job)
+{
+    if(jobs.size == 0 || job == 0) return 1;
     else
     {
-        job_node *current = jobs->head;
+        job_node *current = jobs.head;
 
         while (current != NULL)
         {
@@ -163,32 +210,28 @@ int print_job_int(job_list *jobs, int job)
     }
 }
 
-void job_update(job_list *jobs_done)
+void job_update()
 {
-   print_job_list(jobs_done);
-   jobs_done->size = 0;
-   jobs_done->head = NULL;
+   print_job_list(&jobs_done);
+   jobs_done.size = 0;
+   jobs_done.head = NULL;
 
 }
 
-void add_to_jobs_done(pid_t pid, job_list *jobs, job_list *jobs_done)
-{
-    job_node *current = jobs->head;
+void init_job_list() {
+    jobs.size =0;
+    jobs.head = NULL;
 
-    while (current != NULL)
-    {
-        if(current->current_job.pid == pid) 
-        {
-            current->current_job.etat = DONE;
-               
-            add_job_to_list(jobs_done, &(current->current_job));
-            jobs->size--;
-        }
-        
-        current = current->next;
-    }
+    jobs_done.size =0;
+    jobs_done.head = NULL;
+
+    signal(SIGCHLD, sigchld_handler);
 }
 
+int get_val_retour()
+{
+    return val_retour;    
+}
 
 
 
