@@ -3,7 +3,7 @@ CFLAGS =
 LDFLAGS = -lm -lreadline
 
 # Liste des fichiers source
-SRCS = main.c commandes.c job.c
+SRCS = main.c commandes.c job.c redirection.c
 
 # Liste des fichiers objets générés à partir des fichiers source
 OBJS = $(SRCS:.c=.o)

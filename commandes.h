@@ -1,14 +1,23 @@
 #ifndef COMMANDES_H
 #define COMMANDES_H
-struct commandes
-{
-    char commande[30];
-};
+typedef struct commande {
+    char *cmd;         
+    char *inputFile;   
+    char *outputFile;  
+    int appendOutput;  
+    int overwriteOutput;
+    char *errorFile;   
+    int appendError;   
+    int overwriteError;
+    int redir;
+} commande;
+ 
 
 //fontions auxiliaires
 char** splitString(char* inputString, int* numWords);
 void liberer_mots(char **mots,int taille) ;
-
+commande parseCommand(const char *str);  
+void freeCommande(commande *cmd);
 //Fonctions pour les commandes
 int appel(const char *instruction );
 int pwd(int argc, char *argv[]);
