@@ -20,17 +20,17 @@
 void prompt(const char *path,int jobs){
     char prompt[MAX_PROMPT_LENGTH];
 
-    int max = MAX_PROMPT_LENGTH -3;
+    int max = MAX_PROMPT_LENGTH -4;
 
     if (jobs > 9)
     {
-        max = MAX_PROMPT_LENGTH - 4;
+        max = MAX_PROMPT_LENGTH - 5;
     }
     
 
     // On vérifie la longueur
     if (strlen(path) > max) {
-             snprintf(prompt, sizeof(prompt), "[%d]...%s ",jobs, path + strlen(path) - (MAX_PROMPT_LENGTH - 7)); 
+             snprintf(prompt, sizeof(prompt), "[%d]...%s ",jobs, path + strlen(path) - (MAX_PROMPT_LENGTH - 8 )); 
     }else{
          snprintf(prompt, sizeof(prompt), "[%d] %s ",jobs, path);
     } 
