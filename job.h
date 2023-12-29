@@ -17,7 +17,7 @@ typedef struct
 
 typedef struct {
     job current_job;
-    job_node *next;
+   struct job_node *next;
 } job_node;
 
 typedef struct {

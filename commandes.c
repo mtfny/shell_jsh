@@ -110,7 +110,7 @@ int appel(const char *instruction){
     } 
 
     else if (strcmp(words[0],"exit") == 0){
-         int stdout_copy = dup(STDOUT_FILENO);
+        int stdout_copy = dup(STDOUT_FILENO);
         appelRedirection(&numWords,&words);
         my_exit(numWords , words);
         res = 1;
@@ -119,9 +119,9 @@ int appel(const char *instruction){
     } 
 
     else if (strcmp(words[0],"jobs") == 0){
-         int stdout_copy = dup(STDOUT_FILENO);
+        int stdout_copy = dup(STDOUT_FILENO);
         res = cmd_jobs(numWords , words);
-         dup2(stdout_copy, STDOUT_FILENO);
+        dup2(stdout_copy, STDOUT_FILENO);
         close(stdout_copy);
     }
     
@@ -129,8 +129,6 @@ int appel(const char *instruction){
         res = cmd_kill(numWords , words);
     }
        
-    } 
-    
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
     }
@@ -145,6 +143,7 @@ int appel(const char *instruction){
     
     return res;
 } 
+
 
 int pwd(int argc, char *argv[]){
     if (argc > 1){
@@ -463,7 +462,7 @@ int cmd_kill(int argc, char *argv[])
             return 1;
         }
 
-        return kill_pid(sig, pid);
+        return kill_pid(atoi(sig), pid);
     }
      
     return 1;
