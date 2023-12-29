@@ -79,15 +79,7 @@ int appel(const char *instruction){
     int numWords;
 
     char **words = splitString(dupInstruction, &numWords);
-   /* if (!isRedirection(instruction))  tentative pour les redirections mais n'a pas fonctionné
-    {
-        printf("oui c'est bon je vais parse\n");
-        commande parsed = parseCommand(instruction);
-       // printf("c'est parse\n go executer\n");
-        executeRedir(&parsed);
-
-
-    }else{*/
+   
     if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
     {
         res = 0;
@@ -95,34 +87,54 @@ int appel(const char *instruction){
 
     else if (strcmp(words[0],"pwd") == 0)
     {
+        int stdout_copy = dup(STDOUT_FILENO);
+        appelRedirection(&numWords,&words);
         res = pwd(numWords ,words);  
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     }
 
     else if (strcmp(words[0],"cd") == 0){
+         int stdout_copy = dup(STDOUT_FILENO);
+        appelRedirection(&numWords,&words);
         res = cd(numWords , words);
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     }
 
     else if (strcmp(words[0],"?") == 0){
+         int stdout_copy = dup(STDOUT_FILENO);
+        appelRedirection(&numWords,&words);
         res = interogation(numWords , words);
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     } 
 
     else if (strcmp(words[0],"exit") == 0){
+         int stdout_copy = dup(STDOUT_FILENO);
+        appelRedirection(&numWords,&words);
         my_exit(numWords , words);
         res = 1;
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     } 
 
     else if (strcmp(words[0],"jobs") == 0){
+         int stdout_copy = dup(STDOUT_FILENO);
         res = cmd_jobs(numWords , words);
+         dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     }
     
     else if (strcmp(words[0],"kill") == 0){
         res = cmd_kill(numWords , words);
     }
+       
+    } 
     
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
     }
-   //}
 
 
     free(dupInstruction);
@@ -320,27 +332,21 @@ int cmd_externe(int argc, char *argv[]){
     }
 
     if (child_pid == 0) {
-        //On execute la commande externe avec les arguments fournis
-        if (execvp(new_argv[0], new_argv) == -1) { //on verifie qu'il n'y a pas eu d'echec
+    
+        if (appelRedirection(&argc,&new_argv) == 0)
+        {
+            if (execvp(new_argv[0], new_argv) == -1) { //on verifie qu'il n'y a pas eu d'echec
             ret = 1;
-        //Si echec, on identifie l'erreur pour fournir un message plus détaillé
-            switch (errno)
-            {
-            case EINVAL:
-                perror("Arguments invalides");
-                break;
-            case ENOENT:
-                perror("Commande inexistante");
-                break;
-            default:
-             perror("jsh");
-                break;
+            //Si echec, on identifie l'erreur pour fournir un message plus détaillé
+            exit(EXIT_FAILURE);
+            } else{
+                ret = 0;
             }
-            exit(EXIT_FAILURE);//On termine
-        } else{
-            ret = 0;
+            exit(EXIT_SUCCESS);
         }
-        exit(EXIT_SUCCESS);
+        
+        exit(EXIT_FAILURE);
+        
     } else {
         // Code du processus parent
         // On attend que le processus fils (execvp) se termine
