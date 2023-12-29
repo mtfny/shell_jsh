@@ -31,5 +31,6 @@ int cmd_jobs(int argc, char *argv[]);
 void update();
 //void sigchld_handler(int signum);
 int cmd_jobs_size();
+int cmd_kill(int argc, char *argv[]);
 
 #endif
