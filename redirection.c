@@ -40,16 +40,14 @@ int appelRedirection(int *argc, char ***argv){
         return 1;
     }
     for (int i = 0; i < *argc; ++i) {
-        if (containsExactSubstring((*argv)[i],"<")) {
-            res = redirectInStandard((*argv)[i + 1]);
-             i++;
-            //truncate_argv(argc,argv);
+        if (containsExactSubstring((*argv)[i],"<")) { //si on tombe sur un symbole de redirection alors
+            res = redirectInStandard((*argv)[i + 1]); //on tente d'effectuer la redirection avec le nom du fichier fourni après le symbole
+             i++; //on incrémente i pour passer le nom du fichier
         }
         else if (containsExactSubstring((*argv)[i],">"))
         {
            res = redirectOutStandard((*argv)[i+1]);
            i++;
-            //truncate_argv(argc,argv);
         } else if ( containsExactSubstring((*argv)[i],">>"))
         {
            res = redirectOutConcat((*argv)[i+1]);
@@ -72,11 +70,11 @@ int appelRedirection(int *argc, char ***argv){
            i++;
         }else
         {
-            new_argv[new_argc++] = (*argv)[i];
+            new_argv[new_argc++] = (*argv)[i]; //il s'agit d'une commande on va donc la stocker pour pouvoir l'executer ensuite 
         }
         
     }
-    new_argv[new_argc] = NULL; // Terminate the new argv
+    new_argv[new_argc] = NULL;
     *argc = new_argc;
     *argv = new_argv;
 

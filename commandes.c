@@ -67,7 +67,6 @@ int appel(const char *instruction){
     if (dupInstruction == NULL) {
         perror("Allocation memory error");
         exit(EXIT_FAILURE);
-        //return 0;
     }
 
     if (strcmp(instruction, "") == 0)
@@ -95,7 +94,7 @@ int appel(const char *instruction){
     }
 
     else if (strcmp(words[0],"cd") == 0){
-         int stdout_copy = dup(STDOUT_FILENO);
+        int stdout_copy = dup(STDOUT_FILENO);
         appelRedirection(&numWords,&words);
         res = cd(numWords , words);
         dup2(stdout_copy, STDOUT_FILENO);
@@ -103,7 +102,7 @@ int appel(const char *instruction){
     }
 
     else if (strcmp(words[0],"?") == 0){
-         int stdout_copy = dup(STDOUT_FILENO);
+        int stdout_copy = dup(STDOUT_FILENO);
         appelRedirection(&numWords,&words);
         res = interogation(numWords , words);
         dup2(stdout_copy, STDOUT_FILENO);
@@ -140,9 +139,8 @@ int appel(const char *instruction){
     free(dupInstruction);
     liberer_mots(words,numWords);
 
-    char buffer[20];  //pour pouvoir stocker la valeur de retour
-    // convertion l'entier en chaîne de caractères
-    sprintf(buffer, "%d", res);
+    char buffer[20];  //pour pouvoir stocker la valeur de retour 
+    sprintf(buffer, "%d", res); // convertion l'entier en chaîne de caractères
     int c = setenv("?",buffer,1); //On stock la valeur dans une variable d'environnement
     
     return res;
@@ -303,8 +301,7 @@ int cmd_externe(int argc, char *argv[]){
  //       signal(SIGCHLD, sigchld_handler);
 
     int ret = 0;
-    //Création d'un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
-    char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));
+    char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));  //Création d'un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
     if (new_argv == NULL) {
         perror("Erreur lors de l'allocation de mémoire");
         return 1;
@@ -321,9 +318,8 @@ int cmd_externe(int argc, char *argv[]){
         new_argv[i] = argv[i];
     }
     new_argv[argc] = NULL;  //Ajouter NULL à la fin du tableau
-    
-    //On fait un fork pour qu'execvp ne prenne pas la place du père
-    pid_t child_pid = fork();
+
+    pid_t child_pid = fork(); //On fait un fork pour qu'execvp ne prenne pas la place du père
 
     if (child_pid == -1) {
         perror("Erreur lors de la création du processus fils");
@@ -337,7 +333,6 @@ int cmd_externe(int argc, char *argv[]){
         {
             if (execvp(new_argv[0], new_argv) == -1) { //on verifie qu'il n'y a pas eu d'echec
             ret = 1;
-            //Si echec, on identifie l'erreur pour fournir un message plus détaillé
             exit(EXIT_FAILURE);
             } else{
                 ret = 0;
