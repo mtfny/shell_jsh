@@ -192,7 +192,11 @@ int appel(const char *instruction){
 
     else if (strcmp(words[0],"jobs") == 0){
         res = cmd_jobs(numWords , words);
-    } 
+    }
+    
+    else if (strcmp(words[0],"kill") == 0){
+        res = cmd_kill(numWords , words);
+    }
     
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
@@ -479,9 +483,49 @@ void update()
     //vider jobs_done
 }
 
-
-
 int cmd_jobs_size()
 {
     return job_get_size();
+}
+
+int cmd_kill(int argc, char *argv[])
+{
+    if(argc < 2 ){
+        if (write(STDERR_FILENO, "Pas assez d'arguments\n", 23) < 0) {
+            perror("Erreur lors de l'écriture sur stderr");
+        }
+        return 1;
+    } 
+
+    else if (argc > 3 ){
+        if (write(STDERR_FILENO, "Trop d'arguments\n", 18) < 0) {
+            perror("Erreur lors de l'écriture sur stderr");
+        }
+        return 1;
+    }
+    // Envoie SIGTERM à un JOB 
+    else if(argc == 2 && strncmp(argv[1], "%", 1) == 0){
+        char *num_job = (char *)malloc(strlen(argv[1]));
+        strcpy(num_job, argv[1] + 1);
+
+        return kill_job(SIGTERM, atoi(num_job));
+    }
+    // Envoie SIGTERM à un pid
+    else if (argc == 2){
+        pid_t pid = (pid_t)atoi(argv[1]);
+        if (pid <= 0) {
+            printf("PID incorrect \n");
+            return 1;
+        }
+
+        return kill_pid(SIGTERM, pid);
+    }
+
+    else {
+
+    }
+
+     
+
+    return 0;
 }

@@ -13,11 +13,11 @@
 #include <signal.h>
 
 
-static int val_retour = 0;
-
 enum STATE{
     RUNNING, STOPPED, DETACHED, KILLED, DONE
 };
+
+static int num_free = 1;
 
 typedef struct 
 {
@@ -25,6 +25,7 @@ typedef struct
     pid_t pid;
     enum STATE etat;
     char commande[255];
+    int print_while_done;
 }job;
 
 typedef struct {
@@ -40,7 +41,35 @@ typedef struct {
 static job_list jobs;
 static job_list jobs_done;
 
-void printJob(const job *j) {
+void remove_done_killed_jobs() 
+{
+    job_node *current = jobs.head;
+    job_node *previous = NULL;
+
+    while (current != NULL) {
+        if (current->current_job.print_while_done == 0) {
+            // L'élément a l'état DONE ou KILLED, ajuster les pointeurs
+            if (previous == NULL) {
+                // Si l'élément à supprimer est en tête de liste
+                jobs.head = current->next;
+                free(current);
+                current = jobs.head; // Avancer vers le prochain élément
+            } else {
+                previous->next = current->next;
+                free(current);
+                current = previous->next; // Avancer vers le prochain élément
+            }
+
+            // Décrémenter la taille de la liste
+            //jobs.size --;
+        } else {
+            previous = current;
+            current = current->next;
+        }
+    }
+}
+
+void printJob(job *j) {
     const char *print_etat;
     switch (j->etat)
     {
@@ -55,9 +84,13 @@ void printJob(const job *j) {
         break;
     case KILLED:
         print_etat = "Killed";
+        j->print_while_done = 0;
+        remove_done_killed_jobs();
         break;
     case DONE:
         print_etat = "Done";
+        j->print_while_done = 0;
+        remove_done_killed_jobs();
         break;
 
     }
@@ -91,12 +124,15 @@ void concatenate_strings(char **strings, char *result) {
 }
 
 void init_job(job *new_job, int num, pid_t pid, char **command ) { 
-    new_job->num = num;
+    new_job->num = num_free;
     new_job->pid = pid;
     new_job->etat = RUNNING;  
+    new_job->print_while_done = 1;
 
     concatenate_strings(command, new_job->commande);
     printJob(new_job);
+
+    num_free++;
 }
 
 void print_job_list(job_list *list) {
@@ -141,6 +177,7 @@ void add_job_to_list(job_list *jobs, const job *new_job) {
     jobs->size++;
     //test 
 }
+
 void add_job_to_list_bis(const job *new_job) {
     job_node *new_node = (job_node *)malloc(sizeof(job_node));
     if (new_node == NULL) {
@@ -161,13 +198,15 @@ void add_job_to_list_bis(const job *new_job) {
     jobs_done.size++;
 }
 
+
+
 void add_to_jobs_done()
 {
     job_node *current = jobs.head;
 
     while (current != NULL)
     {
-       pid_t pid = current->current_job.pid;
+        pid_t pid = current->current_job.pid;
         int status;
 
         pid_t result = waitpid(pid, &status, WNOHANG);
@@ -179,12 +218,28 @@ void add_to_jobs_done()
             if (WIFEXITED(status)) {
                 // Le processus enfant a terminé normalement
                 //printf("azalakapaino\n");
-                current->current_job.etat = DONE;
-                add_job_to_list_bis( &(current->current_job));
-                jobs.size --;
-                int exit_status = WEXITSTATUS(status);
+                if(current->current_job.etat == KILLED){
+                    add_job_to_list_bis( &(current->current_job));
+                    jobs.size --;
+                }else{
+
+                    current->current_job.etat = DONE;
+                    add_job_to_list_bis( &(current->current_job));
+                    jobs.size --;
+                    int exit_status = WEXITSTATUS(status);
+                }
                 
+            }else{
+                if(current->current_job.etat == KILLED){
+                    add_job_to_list_bis( &(current->current_job));
+                    jobs.size --;
+                }else{
+                    current->current_job.etat = DONE;
+                    add_job_to_list_bis( &(current->current_job));
+                    jobs.size --;
+                }
             }
+
         } else {
             // Erreur a gerer 
         }
@@ -196,9 +251,7 @@ void add_to_jobs_done()
 
 void add_job_to_jobs(const job *new_job)
 {
-    add_job_to_list(&jobs, new_job);
-    
-    
+    add_job_to_list(&jobs, new_job); 
 }
 
 int job_get_size()
@@ -226,10 +279,13 @@ int print_job_int(int job)
     }
 }
 
+
+
 void job_update()
 {
     add_to_jobs_done();
     print_job_list(&jobs_done);
+    //remove_done_killed_jobs();
     jobs_done.size = 0;
     jobs_done.head = NULL;
 
@@ -245,8 +301,81 @@ void init_job_list() {
     //signal(SIGCHLD, sigchld_handler);
 }
 
-int get_val_retour()
+
+int kill_pid(int sig, pid_t pid)
 {
-    return val_retour;    
+    if(jobs.size == 0 ) return 1;
+    else
+    {
+        job_node *current = jobs.head;
+
+        while (current != NULL)
+        {
+            if(current->current_job.pid == pid) 
+            {
+                int result;
+                
+
+                switch (sig)
+                {
+                case 15:
+                    result = kill(pid, sig);
+                    current->current_job.etat = KILLED;
+                    break;
+                case 18:
+                    result = kill(pid, sig);
+                    current->current_job.etat = RUNNING;
+                    break;
+                case 19:
+                    result = kill(pid, sig);
+                    current->current_job.etat = STOPPED;
+                    break;
+                
+                default:
+                    break;
+                }
+                return 0;
+            }
+            current = current->next;
+        }
+        return 1; 
+    }
 }
 
+int kill_job(int sig, int job)
+{
+
+        job_node *current = jobs.head;
+
+        while (current != NULL)
+        {
+            if(current->current_job.num == job) 
+            {
+                int result;
+
+                switch (sig)
+                {
+                case 15:
+                    result = kill(current->current_job.pid, sig);
+                    current->current_job.etat = KILLED;
+                    //enlever le job de la liste à surveiller 
+                    break;
+                case 18:
+                    result = kill(current->current_job.pid, sig);
+                    current->current_job.etat = RUNNING;
+                    break;
+                case 19:
+                    result = kill(current->current_job.pid, sig);
+                    current->current_job.etat = STOPPED;
+                    break;
+                
+
+                default:
+                    break;
+                }
+                return 0;
+            }
+            current = current->next;
+        }
+        return 1; 
+}
