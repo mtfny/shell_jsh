@@ -26,79 +26,59 @@ int containsExactSubstring(const char *c1, const char *c2){
     return 0;  // Aucun mot de c2 trouvé dans c1
 }
 
-void truncate_argv(int *argc, char ***argv) {
-   int i;
-    for (i = 0; i < *argc; i++) {
-        if (strcmp((*argv)[i], ">") == 0 || strcmp((*argv)[i], "<") == 0 ||
-            strcmp((*argv)[i], ">>") == 0 || strcmp((*argv)[i], "2>") == 0 ||
-            strcmp((*argv)[i], "2>>") == 0 || strcmp((*argv)[i], ">|") == 0
-            || strcmp((*argv)[i], "2>|") == 0)
-             {
-            break;
-            }
-    }
-
-    // Mettre à jour argc pour refléter le nombre d'éléments avant le symbole de redirection
-    *argc = i;
-
-    // Créer un nouveau tableau argv avec la taille ajustée
-    char **new_argv = malloc(sizeof(char *) * (*argc + 1));
-    if (new_argv == NULL) {
-        perror("Erreur lors de l'allocation de mémoire pour new_argv");
-        return;
-    }
-
-    // Copier les éléments de l'ancien argv dans le nouveau
-    for (int j = 0; j < *argc; j++) {
-        new_argv[j] = (*argv)[j];
-    }
-
-    // S'assurer que le dernier élément est NULL
-    new_argv[*argc] = NULL;
-
-    // Libérer la mémoire de l'ancien argv si nécessaire
-    // ...
-
-    // Mettre à jour le pointeur argv pour qu'il pointe vers le nouveau tableau
-    *argv = new_argv;    
-}
 
 
 
 
 int appelRedirection(int *argc, char ***argv){
     int res = 0;
+    char **new_argv = malloc(sizeof(char *) * (*argc));
+    int new_argc = 0;
+
+    if (new_argv == NULL) {
+        perror("Erreur lors de l'allocation de mémoire pour new_argv");
+        return 1;
+    }
     for (int i = 0; i < *argc; ++i) {
         if (containsExactSubstring((*argv)[i],"<")) {
             res = redirectInStandard((*argv)[i + 1]);
-            truncate_argv(argc,argv);
+             i++;
+            //truncate_argv(argc,argv);
         }
         else if (containsExactSubstring((*argv)[i],">"))
         {
            res = redirectOutStandard((*argv)[i+1]);
-            truncate_argv(argc,argv);
+           i++;
+            //truncate_argv(argc,argv);
         } else if ( containsExactSubstring((*argv)[i],">>"))
         {
            res = redirectOutConcat((*argv)[i+1]);
-            truncate_argv(argc,argv);
+           i++;
         }else if (containsExactSubstring((*argv)[i],">|"))
         {
            res = redirectOutEcrase((*argv)[i+1]);
-            truncate_argv(argc,argv);
+           i++;
         }else if (containsExactSubstring((*argv)[i],"2>"))
         {
            res = redirectErrStandard((*argv)[i+1]);
-            truncate_argv(argc,argv);
+           i++;
         }else if ( containsExactSubstring((*argv)[i],"2>>"))
         {
            res = redirectErrConcat((*argv)[i+1]);
-            truncate_argv(argc,argv);
+           i++;
         }else if (containsExactSubstring((*argv)[i],"2>|"))
         {
            res = redirectErrEcrase((*argv)[i+1]);
-            truncate_argv(argc,argv);
+           i++;
+        }else
+        {
+            new_argv[new_argc++] = (*argv)[i];
         }
+        
     }
+    new_argv[new_argc] = NULL; // Terminate the new argv
+    *argc = new_argc;
+    *argv = new_argv;
 
     return res;
 }

@@ -3,9 +3,10 @@
 #include "commandes.h"
 
 
+
 int appelRedirection(int *argc, char ***argv);
 int containsExactSubstring(const char *c1, const char *c2);
-void truncate_argv(int *argc, char ***argv);
+
 
 /*Fonctions de redirections*/
 int redirectInStandard(const char *cmd);
