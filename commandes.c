@@ -521,11 +521,28 @@ int cmd_kill(int argc, char *argv[])
         return kill_pid(SIGTERM, pid);
     }
 
-    else {
+    else if (argc == 3 && strncmp(argv[1], "-", 1) == 0 && strncmp(argv[2], "%", 1) == 0){
+        char *num_job = (char *)malloc(strlen(argv[2]));
+        strcpy(num_job, argv[2] + 1);
 
+        char *sig = (char *)malloc(strlen(argv[1]));
+        strcpy(sig, argv[1] + 1);
+
+        return kill_job(atoi(sig),atoi(num_job));
     }
 
-     
+    else if (argc == 3 && strncmp(argv[1], "-", 1) == 0){
+        char *sig = (char *)malloc(strlen(argv[1]));
+        strcpy(sig, argv[1] + 1);
 
-    return 0;
+        pid_t pid = (pid_t)atoi(argv[2]);
+        if (pid <= 0) {
+            printf("PID incorrect \n");
+            return 1;
+        }
+
+        return kill_pid(sig, pid);
+    }
+     
+    return 1;
 }

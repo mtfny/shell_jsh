@@ -314,23 +314,19 @@ int kill_pid(int sig, pid_t pid)
             if(current->current_job.pid == pid) 
             {
                 int result;
+                result = kill(pid, sig);
                 
-
                 switch (sig)
                 {
                 case 15:
-                    result = kill(pid, sig);
                     current->current_job.etat = KILLED;
                     break;
                 case 18:
-                    result = kill(pid, sig);
                     current->current_job.etat = RUNNING;
                     break;
                 case 19:
-                    result = kill(pid, sig);
                     current->current_job.etat = STOPPED;
-                    break;
-                
+                    break; 
                 default:
                     break;
                 }
@@ -352,24 +348,20 @@ int kill_job(int sig, int job)
             if(current->current_job.num == job) 
             {
                 int result;
+                result = kill(current->current_job.pid, sig);
 
                 switch (sig)
                 {
                 case 15:
-                    result = kill(current->current_job.pid, sig);
                     current->current_job.etat = KILLED;
                     //enlever le job de la liste à surveiller 
                     break;
                 case 18:
-                    result = kill(current->current_job.pid, sig);
                     current->current_job.etat = RUNNING;
                     break;
                 case 19:
-                    result = kill(current->current_job.pid, sig);
                     current->current_job.etat = STOPPED;
                     break;
-                
-
                 default:
                     break;
                 }
