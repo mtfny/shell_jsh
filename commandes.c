@@ -59,85 +59,6 @@ void liberer_mots(char **mots,int taille) {
     }
 }
 
-commande parseCommand(const char *instruction){
-    commande cmd = {0};
-    char *temp = strdup(instruction); // Copie temporaire pour le parsing
-    char *part;
-    char *nextPart;
-
-    // Initialisation des valeurs par défaut
-    cmd.appendOutput = 0;
-    cmd.overwriteOutput = 0;
-    cmd.appendError = 0;
-    cmd.overwriteError = 0;
-    cmd.redir = 0;
-
-    // Analyse de la commande et des redirections
-    part = strtok(temp, " ");
-    while (part != NULL) {
-        nextPart = strtok(NULL, " "); 
-
-        if (strcmp(part, "<") == 0 && nextPart != NULL) {
-            cmd.inputFile = strdup(nextPart);
-            cmd.redir = 0;
-            part = strtok(NULL, " "); // on passe le nom du fichier
-        } else if (strcmp(part, ">") == 0 && nextPart != NULL) {
-            cmd.outputFile = strdup(nextPart);
-            cmd.overwriteOutput = 1;
-            cmd.redir = 1;
-            part = strtok(NULL, " "); // on passe le nom du fichier
-        }else if (strcmp(part, ">|") == 0 && nextPart != NULL) {
-            cmd.outputFile = strdup(nextPart);
-            cmd.appendOutput = 1;
-            cmd.redir = 2;
-            part = strtok(NULL, " "); // on passe le nom du fichier
-        }else if (strcmp(part, ">>") == 0 && nextPart != NULL) {
-            cmd.outputFile = strdup(nextPart);
-            cmd.appendOutput = 1;
-            cmd.redir = 3;
-            part = strtok(NULL, " "); // on passe le nom du fichier
-        } else if (strcmp(part, "2>") == 0 && nextPart != NULL) {
-            cmd.errorFile = strdup(nextPart);
-            cmd.overwriteError = 1;
-            cmd.redir = 4;
-            part = strtok(NULL, " "); // on passe le nom du fichier
-        } else if (strcmp(part, "2>>") == 0 && nextPart != NULL) {
-            cmd.errorFile = strdup(nextPart);
-            cmd.appendError = 1;
-            cmd.redir = 5;
-            part = strtok(NULL, " "); // on passe le nom du fichier
-        }else if (strcmp(part, "2>|") == 0 && nextPart != NULL) {
-            cmd.errorFile = strdup(nextPart);
-            cmd.appendError = 1;
-            cmd.redir = 6;
-            part = strtok(NULL, " "); // on passe le nom du fichier
-        }else {
-            // Partie de la commande principale
-            if (!cmd.cmd) {
-                cmd.cmd = strdup(part);
-            } else {
-                // Concaténation des mots composant la commande
-                char *newCmd = malloc(strlen(cmd.cmd) + strlen(part) + 2);
-                sprintf(newCmd, "%s %s", cmd.cmd, part);
-                free(cmd.cmd);
-                cmd.cmd = newCmd;
-            }
-        }
-
-        part = nextPart; 
-    }
-   // printf("%s",cmd.cmd);
-    free(temp); // Libérer la copie temporaire
-    return cmd;
-}
-
-void freeCommande(commande *cmd) {
-    free(cmd->inputFile);
-    free(cmd->outputFile);
-    free(cmd->errorFile);
-    free(cmd->cmd);
-}
-
 /*c'est cette fonction qui va appeler la bonne commande */
 int appel(const char *instruction){
     int res = 1;
@@ -146,7 +67,6 @@ int appel(const char *instruction){
     if (dupInstruction == NULL) {
         perror("Allocation memory error");
         exit(EXIT_FAILURE);
-        //return 0;
     }
 
     if (strcmp(instruction, "") == 0)
@@ -158,15 +78,7 @@ int appel(const char *instruction){
     int numWords;
 
     char **words = splitString(dupInstruction, &numWords);
-   /* if (!isRedirection(instruction))  tentative pour les redirections mais n'a pas fonctionné
-    {
-        printf("oui c'est bon je vais parse\n");
-        commande parsed = parseCommand(instruction);
-       // printf("c'est parse\n go executer\n");
-        executeRedir(&parsed);
-
-
-    }else{*/
+   
     if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
     {
         res = 0;
@@ -174,46 +86,64 @@ int appel(const char *instruction){
 
     else if (strcmp(words[0],"pwd") == 0)
     {
+        int stdout_copy = dup(STDOUT_FILENO);
+        appelRedirection(&numWords,&words);
         res = pwd(numWords ,words);  
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     }
 
     else if (strcmp(words[0],"cd") == 0){
+        int stdout_copy = dup(STDOUT_FILENO);
+        appelRedirection(&numWords,&words);
         res = cd(numWords , words);
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     }
 
     else if (strcmp(words[0],"?") == 0){
+        int stdout_copy = dup(STDOUT_FILENO);
+        appelRedirection(&numWords,&words);
         res = interogation(numWords , words);
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     } 
 
     else if (strcmp(words[0],"exit") == 0){
+        int stdout_copy = dup(STDOUT_FILENO);
+        appelRedirection(&numWords,&words);
         my_exit(numWords , words);
         res = 1;
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     } 
 
     else if (strcmp(words[0],"jobs") == 0){
+        int stdout_copy = dup(STDOUT_FILENO);
         res = cmd_jobs(numWords , words);
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     }
     
     else if (strcmp(words[0],"kill") == 0){
         res = cmd_kill(numWords , words);
     }
-    
+       
     else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
         res = cmd_externe(numWords,words);
     }
-   //}
 
 
     free(dupInstruction);
     liberer_mots(words,numWords);
 
-    char buffer[20];  //pour pouvoir stocker la valeur de retour
-    // convertion l'entier en chaîne de caractères
-    sprintf(buffer, "%d", res);
+    char buffer[20];  //pour pouvoir stocker la valeur de retour 
+    sprintf(buffer, "%d", res); // convertion l'entier en chaîne de caractères
     int c = setenv("?",buffer,1); //On stock la valeur dans une variable d'environnement
     
     return res;
 } 
+
 
 int pwd(int argc, char *argv[]){
     if (argc > 1){
@@ -370,8 +300,7 @@ int cmd_externe(int argc, char *argv[]){
  //       signal(SIGCHLD, sigchld_handler);
 
     int ret = 0;
-    //Création d'un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
-    char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));
+    char **new_argv = (char **)malloc((argc + 1) * sizeof(char *));  //Création d'un nouveau tableau avec NULL à la fin pour qu'il puisse correspondre à execvp
     if (new_argv == NULL) {
         perror("Erreur lors de l'allocation de mémoire");
         return 1;
@@ -388,9 +317,8 @@ int cmd_externe(int argc, char *argv[]){
         new_argv[i] = argv[i];
     }
     new_argv[argc] = NULL;  //Ajouter NULL à la fin du tableau
-    
-    //On fait un fork pour qu'execvp ne prenne pas la place du père
-    pid_t child_pid = fork();
+
+    pid_t child_pid = fork(); //On fait un fork pour qu'execvp ne prenne pas la place du père
 
     if (child_pid == -1) {
         perror("Erreur lors de la création du processus fils");
@@ -399,27 +327,20 @@ int cmd_externe(int argc, char *argv[]){
     }
 
     if (child_pid == 0) {
-        //On execute la commande externe avec les arguments fournis
-        if (execvp(new_argv[0], new_argv) == -1) { //on verifie qu'il n'y a pas eu d'echec
+    
+        if (appelRedirection(&argc,&new_argv) == 0)
+        {
+            if (execvp(new_argv[0], new_argv) == -1) { //on verifie qu'il n'y a pas eu d'echec
             ret = 1;
-        //Si echec, on identifie l'erreur pour fournir un message plus détaillé
-            switch (errno)
-            {
-            case EINVAL:
-                perror("Arguments invalides");
-                break;
-            case ENOENT:
-                perror("Commande inexistante");
-                break;
-            default:
-             perror("jsh");
-                break;
+            exit(EXIT_FAILURE);
+            } else{
+                ret = 0;
             }
-            exit(EXIT_FAILURE);//On termine
-        } else{
-            ret = 0;
+            exit(EXIT_SUCCESS);
         }
-        exit(EXIT_SUCCESS);
+        
+        exit(EXIT_FAILURE);
+        
     } else {
         // Code du processus parent
         // On attend que le processus fils (execvp) se termine
@@ -541,7 +462,7 @@ int cmd_kill(int argc, char *argv[])
             return 1;
         }
 
-        return kill_pid(sig, pid);
+        return kill_pid(atoi(sig), pid);
     }
      
     return 1;

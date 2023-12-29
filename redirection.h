@@ -2,22 +2,20 @@
 #define REDIRECTION_H
 #include "commandes.h"
 
-int isRedirection(const char *instruction);
-int appelRedirection(const commande *parsedCommand);
-int containsExactSubstring(const char *c1, const char *c2);
-int executeRedir(const commande *cmd);
 
-char* truncate_command(const char* instruction);
+
+int appelRedirection(int *argc, char ***argv);
+int containsExactSubstring(const char *c1, const char *c2);
+
 
 /*Fonctions de redirections*/
-/*int redirectInStandard(const commande *cmd);
-int redirectOutStandard(const commande *cmd);
-int redirectOutEcrase(const commande *cmd);
-int redirectOutConcat(const commande *cmd);
-int redirectErrStandard(const commande *cmd);
-int redirectErrEcrase(const commande *cmd);
-int redirectErrConcat(const commande *cmd);
-int redirectInPipe(int pipefd[2], commande *cmd);*/
-void redirect(int oldfd, int newfd);
+int redirectInStandard(const char *cmd);
+int redirectOutStandard(const char *cmd);
+int redirectOutEcrase(const char *cmd);
+int redirectOutConcat(const char *cmd);
+int redirectErrStandard(const char *cmd);
+int redirectErrEcrase(const char *cmd);
+int redirectErrConcat(const char *cmd);
+int redirectInPipe(int pipefd[2], char *cmd);
 
 #endif

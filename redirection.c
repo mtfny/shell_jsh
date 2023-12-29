@@ -7,30 +7,11 @@
 #include <stdbool.h>
 #include <string.h>
 
-int isRedirection(const char *instruction) {
-    //printf("début test redirection\n");
-   if (containsExactSubstring(instruction,"<")||
-        containsExactSubstring(instruction,">")||
-        containsExactSubstring(instruction,">>")||
-        containsExactSubstring(instruction,">|")||
-        containsExactSubstring(instruction,"2>")||
-        containsExactSubstring(instruction,"2>>")||
-        containsExactSubstring(instruction,"2>|")
-    ) {
-            //printf("fin ok\n");
-        // La chaîne contient au moins une redirection
-        return 0;
-    } else {
-       // printf("fin pas ok\n");
-        // Aucune redirection détectée
-        return 1;
-    }
-}
 
 int containsExactSubstring(const char *c1, const char *c2){
   // Diviser c1 en mots
     char *token;
-    char c1Copy[100]; 
+    char c1Copy[1024]; 
     strcpy(c1Copy, c1);
 
     token = strtok(c1Copy, " ");
@@ -47,141 +28,203 @@ int containsExactSubstring(const char *c1, const char *c2){
 
 
 
-void redirect(int oldfd, int newfd) {
-    if (oldfd != -1) {
-        dup2(oldfd, newfd);
-        close(oldfd);
+
+
+int appelRedirection(int *argc, char ***argv){
+    int res = 0;
+    char **new_argv = malloc(sizeof(char *) * (*argc));
+    int new_argc = 0;
+
+    if (new_argv == NULL) {
+        perror("Erreur lors de l'allocation de mémoire pour new_argv");
+        return 1;
     }
+    for (int i = 0; i < *argc; ++i) {
+        if (containsExactSubstring((*argv)[i],"<")) { //si on tombe sur un symbole de redirection alors
+            res = redirectInStandard((*argv)[i + 1]); //on tente d'effectuer la redirection avec le nom du fichier fourni après le symbole
+             i++; //on incrémente i pour passer le nom du fichier
+        }
+        else if (containsExactSubstring((*argv)[i],">"))
+        {
+           res = redirectOutStandard((*argv)[i+1]);
+           i++;
+        } else if ( containsExactSubstring((*argv)[i],">>"))
+        {
+           res = redirectOutConcat((*argv)[i+1]);
+           i++;
+        }else if (containsExactSubstring((*argv)[i],">|"))
+        {
+           res = redirectOutEcrase((*argv)[i+1]);
+           i++;
+        }else if (containsExactSubstring((*argv)[i],"2>"))
+        {
+           res = redirectErrStandard((*argv)[i+1]);
+           i++;
+        }else if ( containsExactSubstring((*argv)[i],"2>>"))
+        {
+           res = redirectErrConcat((*argv)[i+1]);
+           i++;
+        }else if (containsExactSubstring((*argv)[i],"2>|"))
+        {
+           res = redirectErrEcrase((*argv)[i+1]);
+           i++;
+        }else
+        {
+            new_argv[new_argc++] = (*argv)[i]; //il s'agit d'une commande on va donc la stocker pour pouvoir l'executer ensuite 
+        }
+        
+    }
+    new_argv[new_argc] = NULL;
+    *argc = new_argc;
+    *argv = new_argv;
+
+    return res;
 }
 
-char* truncate_command(const char* instruction) {
-    char* command;
-    char* token;
-    char delimiters[] = "><|"; 
-    // Copier l'instruction dans une nouvelle chaîne pour ne pas la modifier
-    command = strdup(instruction);
-    if (command == NULL) {
-        perror("Erreur lors de la duplication de la chaîne");
-        return NULL;
-    }
-
-    // Trouver le premier token (mot)
-    token = strtok(command, delimiters);
-    if (token == NULL) {
-        free(command);
-        return NULL;
-    }
-
-    // Réallouer la mémoire pour ne contenir que la commande
-    char* truncated = realloc(command, strlen(token) + 1);
-    if (truncated == NULL) {
-        perror("Erreur de réallocation de mémoire");
-        free(command);
-        return NULL;
-    }
-
-    return truncated;
-}
-
-
-int executeRedir(const commande *cmd){
-   
-    int fileDescriptor;
-    int res;
-    pid_t pid;
-  
-  
-    
-     pid = fork();
-    if (pid == -1) {
-        // Erreur de fork
-        perror("Erreur fork");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pid == 0) {
-        // processus enfant
-
-        // Découper la commande en arguments pour execvp
-        int argc;
-        char *command = truncate_command(cmd->cmd);
-        char **argv = splitString(command,&argc);
-        // Redirection de l'entrée
-          if (cmd->inputFile != NULL) {
-        fileDescriptor = open(cmd->inputFile, O_RDONLY);
-        if (fileDescriptor == -1) {
+int redirectInStandard(const char *cmd) { 
+        int fd = open(cmd, O_RDONLY);
+        if (fd == -1) {
             perror("Erreur lors de l'ouverture du fichier d'entrée");
-            return 1;
+            return 1; 
         }
-        if (dup2(fileDescriptor, STDIN_FILENO) == -1) {
+
+        if (dup2(fd, STDIN_FILENO) == -1) {
             perror("Erreur lors de la redirection de l'entrée standard");
+            close(fd);
+            return 1; 
+        }
+
+        close(fd);
+    
+
+    return 0; 
+}
+
+int redirectOutStandard(const char *cmd) {
+        int fd;
+        fd = open(cmd, O_WRONLY | O_CREAT | O_EXCL, 0644);
+
+        if (fd == -1) {
+            perror("Erreur lors de l'ouverture du fichier de sortie");
+            return 1;
+           // exit(EXIT_FAILURE);
+        }
+
+        if (dup2(fd, STDOUT_FILENO) == -1) {
+            perror("Erreur lors de la redirection de la sortie standard");
+            close(fd);
             return 1;
         }
-        close(fileDescriptor);
-    }
 
-    // Redirection de la sortie
-    if (cmd->outputFile != NULL) {
-        int flags = O_WRONLY | O_CREAT;
-        if (cmd->overwriteOutput) {
-            flags |= O_TRUNC;
-        } else if (cmd->appendOutput) {
-            flags |= O_APPEND;
-        } else {
-            flags |= O_EXCL;
-        }
+        close(fd);
+    return 0;
+}
 
-        fileDescriptor = open(cmd->outputFile, flags, 0644);
-        if (fileDescriptor == -1) {
+int redirectOutEcrase(const char *cmd) {
+
+
+        int fd;
+        // Ouvrir le fichier avec écrasement éventuel
+        fd = open(cmd, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+
+        if (fd == -1) {
             perror("Erreur lors de l'ouverture du fichier de sortie");
             return 1;
         }
-        if (dup2(fileDescriptor, STDOUT_FILENO) == -1) {
+
+        // Rediriger la sortie standard vers le fichier
+        if (dup2(fd, STDOUT_FILENO) == -1) {
             perror("Erreur lors de la redirection de la sortie standard");
+            close(fd);
             return 1;
         }
-        close(fileDescriptor);
-    }
 
-    // Redirection de l'erreur
-    if (cmd->errorFile != NULL) {
-        int flags = O_WRONLY | O_CREAT;
-        if (cmd->overwriteError) {
-            flags |= O_TRUNC;
-        } else if (cmd->appendError) {
-            flags |= O_APPEND;
-        } else {
-            flags |= O_EXCL;
-        }
+        close(fd);
 
-        fileDescriptor = open(cmd->errorFile, flags, 0644);
-        if (fileDescriptor == -1) {
-            perror("Erreur lors de l'ouverture du fichier d'erreur");
-            return 1;
-        }
-        if (dup2(fileDescriptor, STDERR_FILENO) == -1) {
-            perror("Erreur lors de la redirection de l'erreur standard");
-            return 1;
-        }
-        close(fileDescriptor);
-    }
-
-        // Exécuter la commande
-        if (execvp(argv[0], argv) == -1) {
-            perror("Erreur execvp");
-            exit(EXIT_FAILURE);
-        }
-        exit(EXIT_SUCCESS);
-    } else {
-        // processus parent
-
-        // Attendre que le processus enfant se termine
-        int status;
-        waitpid(pid, &status, 0);
-
-         if (WIFEXITED(status)) return WEXITSTATUS(status) ;
-    }
-
-    return res;
-
+    return 0;
 }
+
+int redirectOutConcat(const char *cmd){
+ 
+        int fd;
+        fd = open(cmd, O_WRONLY | O_CREAT | O_APPEND, 0644);
+
+        if (fd == -1) {
+            perror("Erreur lors de l'ouverture du fichier de sortie");
+            return 1;
+        }
+
+        if (dup2(fd, STDOUT_FILENO) == -1) {
+            perror("Erreur lors de la redirection de la sortie standard");
+            close(fd);
+            return 1;
+        }
+
+        close(fd);
+    
+    return 0;
+}
+
+int redirectErrStandard(const char *cmd){
+        int fd = open(cmd, O_WRONLY | O_CREAT | O_EXCL, 0644); // Créer si n'existe pas, échouer si existe
+    if (fd == -1) { 
+         perror("Erreur lors de l'ouverture du fichier de sortie");
+        return 1;
+    }
+    if(dup2(fd, STDERR_FILENO) == -1){
+         perror("Erreur lors de la redirection de la sortie standard");
+            close(fd);
+            return 1;
+    } 
+    close(fd); 
+    return 0;
+}
+
+int redirectErrEcrase(const char *cmd){
+
+        int fd = open(cmd,O_WRONLY | O_CREAT | O_TRUNC, 0644); // Créer si n'existe pas, échouer si existe
+    if (fd == -1) { 
+         perror("Erreur lors de l'ouverture du fichier de sortie");
+        return 1;
+    }
+    if(dup2(fd, STDERR_FILENO) == -1){
+         perror("Erreur lors de la redirection de la sortie standard");
+            close(fd);
+            return 1;
+    } 
+    close(fd); 
+    return 0;
+}
+int redirectErrConcat(const char *cmd){
+   
+        int fd = open(cmd,O_WRONLY | O_CREAT | O_APPEND, 0644); // Créer si n'existe pas, échouer si existe
+    if (fd == -1) { 
+         perror("Erreur lors de l'ouverture du fichier de sortie");
+        return 1;
+    }
+    if(dup2(fd, STDERR_FILENO) == -1){
+         perror("Erreur lors de la redirection de la sortie standard");
+            close(fd);
+            return 1;
+    } 
+    close(fd); 
+    
+    return 0;
+}
+int redirectErrPipe(int pipefd[2], char *cmd){
+    
+    int fd = open(cmd, O_WRONLY | O_CREAT | O_TRUNC, 0644); // Créer si n'existe pas, échouer si existe
+    if (fd == -1) { 
+         perror("Erreur lors de l'ouverture du fichier de sortie");
+        return 1;
+    }
+    if(dup2(fd, STDERR_FILENO) == -1){
+         perror("Erreur lors de la redirection de la sortie standard");
+            close(fd);
+            return 1;
+    } 
+    close(fd); 
+    
+    return 0;
+}
+
