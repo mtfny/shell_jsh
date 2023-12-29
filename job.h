@@ -6,7 +6,7 @@ enum STATE{
 RUNNING, STOPPED, DETACHED, KILLED, DONE
 };
 
-typedef struct 
+typedef struct job
 {
     int num;
     pid_t pid;
@@ -15,12 +15,12 @@ typedef struct
     int print_while_done;
 }job;
 
-typedef struct {
+typedef struct job_node{
     job current_job;
    struct job_node *next;
 } job_node;
 
-typedef struct {
+typedef struct job_list{
     int size;
     job_node *head;
 } job_list;
