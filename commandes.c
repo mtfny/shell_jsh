@@ -354,7 +354,12 @@ int cmd_externe(int argc, char *argv[]){
 
         //le processus est lancé a l'arrière plan 
         if (arriere_plan == 0){
-            pid_t pgid = getpgid(child_pid);
+            //Set l'dientifiant du groupe du precossus fils exécuté 
+            if (setpgid(child_pid, child_pid) == -1) {
+                perror("setpgid a échoué");
+                exit(EXIT_FAILURE);
+            }
+            
             job job_en_cours;
             init_job(&job_en_cours,job_get_size()+1, child_pid, new_argv);
             add_job_to_jobs(&job_en_cours);
@@ -367,9 +372,6 @@ int cmd_externe(int argc, char *argv[]){
         //On retoure valeur fourni par le processus fils (la commande effectuée)
         if (WIFEXITED(status)) return WEXITSTATUS(status) ;
         else ret= 1;
-        
-    
-    
     }
 
     return ret;//normalement pas atteint mais sinon on a un warning
@@ -441,7 +443,7 @@ int cmd_kill(int argc, char *argv[])
 
         return kill_pid(SIGTERM, pid);
     }
-
+    //Envoie d'un signal sig à un JOB 
     else if (argc == 3 && strncmp(argv[1], "-", 1) == 0 && strncmp(argv[2], "%", 1) == 0){
         char *num_job = (char *)malloc(strlen(argv[2]));
         strcpy(num_job, argv[2] + 1);
@@ -451,7 +453,7 @@ int cmd_kill(int argc, char *argv[])
 
         return kill_job(atoi(sig),atoi(num_job));
     }
-
+    //Envoie d'un signal sig à un JOB 
     else if (argc == 3 && strncmp(argv[1], "-", 1) == 0){
         char *sig = (char *)malloc(strlen(argv[1]));
         strcpy(sig, argv[1] + 1);
