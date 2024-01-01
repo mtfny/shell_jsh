@@ -26,22 +26,20 @@ typedef struct job_list{
 } job_list;
 
 
+void remove_done_killed_jobs();
 void printJob(job *j);
 void concatenate_strings(char **strings, char *result);
-void init_job(job *new_job, int num, pid_t pid, char **command);
-
-
-void init_job_list();
+void init_job(job *new_job, int num, pid_t pid, char **command );
 void print_job_list(job_list *list);
 void print_jobs();
 void add_job_to_list(job_list *jobs, const job *new_job);
-void add_job_to_jobs(const job *new_job);
 void add_job_to_list_bis(const job *new_job);
+void add_to_jobs_done();
+void add_job_to_jobs(const job *new_job);
 int job_get_size();
 int print_job_int(int job);
 void job_update();
-void remove_done_killed_jobs();
-void add_to_jobs_done(pid_t pid);
+void init_job_list();
 int kill_pid(int sig, pid_t pid);
 int kill_job(int sig, int job);
 
