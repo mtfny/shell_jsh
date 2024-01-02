@@ -228,3 +228,57 @@ int redirectErrPipe(int pipefd[2], char *cmd){
     return 0;
 }
 
+int redirectPipe(char *instructions){
+    char *pipePos = strstr(instructions, "|");
+    if (pipePos != NULL) {
+        *pipePos = '\0'; // Couper l'instruction au pipe
+        char *firstPart = strdup(instructions);
+        char *secondPart = strdup(pipePos + 1);
+
+        if (!firstPart || !secondPart) {
+            perror("strdup");
+            free(firstPart);
+            free(secondPart);
+            return 1;
+        }
+
+        int pipefd[2];
+        if (pipe(pipefd) == -1) {
+            perror("pipe");
+            free(firstPart);
+            free(secondPart);
+            return 1;
+        }
+
+        pid_t cpid = fork();
+        if (cpid == -1) {
+            perror("fork");
+            free(firstPart);
+            free(secondPart);
+            return 1;
+        }
+
+        if (cpid == 0) { // Enfant
+            close(pipefd[0]); // Ferme la lecture du pipe
+            dup2(pipefd[1], STDOUT_FILENO); // Redirige stdout vers l'entrée du pipe
+            close(pipefd[1]);
+
+            int res = appel(firstPart);
+            exit(res);
+        } else { // Parent
+            close(pipefd[1]); // Ferme l'écriture du pipe
+            dup2(pipefd[0], STDIN_FILENO); // Redirige stdin vers la sortie du pipe
+            close(pipefd[0]);
+
+            int res = appel(secondPart);
+            waitpid(cpid, NULL, 0); // Attendre la fin de l'enfant
+
+            free(firstPart);
+            free(secondPart);
+            return res;
+        }
+    }else{
+        return 0;
+    }
+
+}
