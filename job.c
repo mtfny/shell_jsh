@@ -1,4 +1,5 @@
 #include "commandes.h"
+#include "job.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include<stdint.h>
@@ -13,30 +14,8 @@
 #include <signal.h>
 
 
-enum STATE{
-    RUNNING, STOPPED, DETACHED, KILLED, DONE
-};
 
 static int num_free = 1;
-
-typedef struct job
-{
-    int num;
-    pid_t pid;
-    enum STATE etat;
-    char commande[255];
-    int print_while_done;
-}job;
-
-typedef struct job_node {
-    job current_job;
-    struct job_node *next;
-} job_node;
-
-typedef struct job_list{
-    int size;
-    job_node *head;
-} job_list;
 
 static job_list jobs;
 static job_list jobs_done;

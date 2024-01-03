@@ -15,7 +15,14 @@
 #include "job.h"
 #include <signal.h>
 
-
+Command commands[] = { //Tableau des commandes internes de notre shell sauf my_exit car pas du meme type
+            {"pwd", pwd},
+            {"cd", cd},
+            {"?", interogation},
+            {"jobs", cmd_jobs},
+            {"kill", cmd_kill},
+            {NULL, NULL}
+    };
 
 
 char** splitString(char* String, int* numWords) {
@@ -78,62 +85,32 @@ int appel(const char *instruction){
     int numWords;
 
     char **words = splitString(dupInstruction, &numWords);
+     for (size_t i = 0; i < numWords; i++)
+     {
+       // printf("%s ",words[i]);
+     }
+     
+
    
     if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
     {
         res = 0;
+    }else {
+        if (strcmp(words[0], "exit") == 0) {
+        my_exit(numWords, words); 
+        exit(0); // Sécurité, ne doit pas être atteint si my_exit fonctionne correctement
+        }
+        int i;
+        for (i = 0; commands[i].name != NULL; i++) {
+            if (strcmp(words[0], commands[i].name) == 0) {
+                res = cmd_interne(commands[i].function, numWords, words);
+                break;
+            }
+        }
+        if (commands[i].name == NULL) { // Si la commande n'est pas trouvée dans le tableau
+            res = cmd_externe(numWords, words);
+        }
     }
-
-    else if (strcmp(words[0],"pwd") == 0)
-    {
-        int stdout_copy = dup(STDOUT_FILENO);
-        appelRedirection(&numWords,&words);
-        res = pwd(numWords ,words);  
-        dup2(stdout_copy, STDOUT_FILENO);
-        close(stdout_copy);
-    }
-
-    else if (strcmp(words[0],"cd") == 0){
-        int stdout_copy = dup(STDOUT_FILENO);
-        appelRedirection(&numWords,&words);
-        res = cd(numWords , words);
-        dup2(stdout_copy, STDOUT_FILENO);
-        close(stdout_copy);
-    }
-
-    else if (strcmp(words[0],"?") == 0){
-        int stdout_copy = dup(STDOUT_FILENO);
-        appelRedirection(&numWords,&words);
-        res = interogation(numWords , words);
-        dup2(stdout_copy, STDOUT_FILENO);
-        close(stdout_copy);
-    } 
-
-    else if (strcmp(words[0],"exit") == 0){
-        int stdout_copy = dup(STDOUT_FILENO);
-        appelRedirection(&numWords,&words);
-        my_exit(numWords , words);
-        res = 1;
-        dup2(stdout_copy, STDOUT_FILENO);
-        close(stdout_copy);
-    } 
-
-    else if (strcmp(words[0],"jobs") == 0){
-        int stdout_copy = dup(STDOUT_FILENO);
-        res = cmd_jobs(numWords , words);
-        dup2(stdout_copy, STDOUT_FILENO);
-        close(stdout_copy);
-    }
-    
-    else if (strcmp(words[0],"kill") == 0){
-        res = cmd_kill(numWords , words);
-    }
-       
-    else{ // si le nom de commande ne correspond à aucune commande interne du shell on essaye avec les commandes externes
-        res = cmd_externe(numWords,words);
-    }
-
-
     free(dupInstruction);
     liberer_mots(words,numWords);
 
@@ -143,6 +120,16 @@ int appel(const char *instruction){
     
     return res;
 } 
+
+int cmd_interne(int (*commandFunc)(int, char**),int argc, char *argv[]){
+    int stdout_copy = dup(STDOUT_FILENO);
+    appelRedirection(&argc, &argv);
+    int res = commandFunc(argc, argv); //commandeFunc est un pointeur vers une des commandes
+    dup2(stdout_copy, STDOUT_FILENO);
+    close(stdout_copy);
+    return res;
+
+}
 
 
 int pwd(int argc, char *argv[]){

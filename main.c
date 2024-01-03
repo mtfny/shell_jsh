@@ -12,6 +12,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "commandes.h"
+#include "job.h"
 
 #define MAX_PROMPT_LENGTH 30
 #define MAX_PATH_LENGTH 512

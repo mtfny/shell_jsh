@@ -34,13 +34,64 @@ int appelRedirection(int *argc, char ***argv){
     int res = 0;
     char **new_argv = malloc(sizeof(char *) * (*argc));
     int new_argc = 0;
-
+    int pipeIndex = 0;
     if (new_argv == NULL) {
         perror("Erreur lors de l'allocation de mémoire pour new_argv");
         return 1;
     }
+
     for (int i = 0; i < *argc; ++i) {
-        if (containsExactSubstring((*argv)[i],"<")) { //si on tombe sur un symbole de redirection alors
+        if (containsExactSubstring((*argv)[i], "|")) {
+           // printf("\noui j'ai trouvé un pipe à la pos %d\n",i);
+            pipeIndex = i;
+            break;
+        }
+    }
+
+    if (pipeIndex > 0) {
+        // Créer les deux parties pour le pipe
+         // Calculez la longueur nécessaire pour cmd1 et cmd2
+        int lengthCmd1 = 0, lengthCmd2 = 0;
+        for (int i = 0; i < pipeIndex; ++i) {
+            lengthCmd1 += strlen((*argv)[i]) + 1; // +1 pour l'espace ou le caractère nul
+        }
+        for (int i = pipeIndex + 1; i < *argc; ++i) {
+            lengthCmd2 += strlen((*argv)[i]) + 1;
+        }
+
+        // Allouez la mémoire pour cmd1 et cmd2
+        char *cmd1 = malloc(lengthCmd1 * sizeof(char));
+        char *cmd2 = malloc(lengthCmd2 * sizeof(char));
+        if (cmd1 == NULL || cmd2 == NULL) {
+            perror("Erreur lors de l'allocation de mémoire");
+            exit(EXIT_FAILURE);
+        }
+
+        // Initialisez cmd1 et cmd2
+        cmd1[0] = '\0';
+        cmd2[0] = '\0';
+        
+        // Concaténez les arguments dans cmd1 et cmd2
+        for (int i = 0; i < pipeIndex; ++i) {
+            strncat(cmd1, (*argv)[i], lengthCmd1 - strlen(cmd1) - 1);
+            strncat(cmd1, " ", lengthCmd1 - strlen(cmd1) - 1);
+        }
+        for (int i = pipeIndex + 1; i < *argc; ++i) {
+             strncat(cmd2, (*argv)[i], lengthCmd2 - strlen(cmd2) - 1);
+             strncat(cmd2, " ", lengthCmd2 - strlen(cmd2) - 1);
+        }
+       // printf("cmd 1 :%s\n",cmd1);
+        // printf("cmd 2 :%s\n",cmd2);
+        // Appeler la fonction pour exécuter les commandes avec un pipe
+        res = redirectPipe(cmd1, cmd2);
+
+        free(cmd1);
+        free(cmd2);
+    
+    } else {
+        for (int i = 0; i < *argc; i++)
+        {
+            if(containsExactSubstring((*argv)[i],"<")) { //si on tombe sur un symbole de redirection alors
             res = redirectInStandard((*argv)[i + 1]); //on tente d'effectuer la redirection avec le nom du fichier fourni après le symbole
              i++; //on incrémente i pour passer le nom du fichier
         }
@@ -72,6 +123,9 @@ int appelRedirection(int *argc, char ***argv){
         {
             new_argv[new_argc++] = (*argv)[i]; //il s'agit d'une commande on va donc la stocker pour pouvoir l'executer ensuite 
         }
+        }
+        
+        
         
     }
     new_argv[new_argc] = NULL;
@@ -227,4 +281,66 @@ int redirectErrPipe(int pipefd[2], char *cmd){
     
     return 0;
 }
+int redirectPipe(char *cmd1, char *cmd2) {
+    int pipefd[2];
+    pid_t cpid1, cpid2;
+    int status;
 
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        return 1;
+    }
+
+    cpid1 = fork();
+    if (cpid1 == -1) {
+        perror("fork");
+        close(pipefd[0]); // Fermer les descripteurs de fichiers en cas d'échec
+        close(pipefd[1]);
+        return 1;
+    }
+
+    if (cpid1 == 0) { // Premier processus enfant (cmd1)
+        close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[1]);
+        if (appel(cmd1) == 0)
+        {
+            exit(EXIT_SUCCESS);
+        }else
+        {
+             exit(EXIT_FAILURE);
+        }
+    } else {
+        cpid2 = fork();
+        if (cpid2 == -1) {
+            perror("fork");
+            close(pipefd[0]);
+            close(pipefd[1]);
+            return 1;
+        }
+        if (cpid2 == 0) { // Deuxième processus enfant (cmd2)
+            close(pipefd[1]);
+            dup2(pipefd[0], STDIN_FILENO);
+            close(pipefd[0]);
+             if (appel(cmd2) == 0)
+        {
+            exit(EXIT_SUCCESS);
+        }else
+        {
+             exit(EXIT_FAILURE);
+        }
+        } else {
+            // Processus parent
+            close(pipefd[0]);
+            close(pipefd[1]);
+
+            waitpid(cpid1, NULL, 0); // Attendre la fin du premier processus enfant
+            waitpid(cpid2, &status, 0); // Attendre la fin du deuxième processus enfant
+
+            if (WIFEXITED(status)) {
+                return WEXITSTATUS(status);
+            }
+        }
+    }
+    return 0; // En cas de succès
+}
