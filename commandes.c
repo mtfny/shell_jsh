@@ -85,6 +85,12 @@ int appel(const char *instruction){
     int numWords;
 
     char **words = splitString(dupInstruction, &numWords);
+     for (size_t i = 0; i < numWords; i++)
+     {
+       // printf("%s ",words[i]);
+     }
+     
+
    
     if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
     {

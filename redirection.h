@@ -17,5 +17,5 @@ int redirectErrStandard(const char *cmd);
 int redirectErrEcrase(const char *cmd);
 int redirectErrConcat(const char *cmd);
 int redirectInPipe(int pipefd[2], char *cmd);
-int redirectPipe(char *instructions);
+int redirectPipe(char *cmd1, char *cmd2);
 #endif
