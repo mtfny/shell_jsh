@@ -296,7 +296,7 @@ int redirectPipe(char *cmd1, char *cmd2) {
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
-         exit(appel(cmd1) == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+         exit(appel(cmd1) != 1 ? EXIT_SUCCESS : EXIT_FAILURE);
     } else {
         cpid2 = fork();
         if (cpid2 == -1) {
@@ -309,7 +309,7 @@ int redirectPipe(char *cmd1, char *cmd2) {
             close(pipefd[1]);
             dup2(pipefd[0], STDIN_FILENO);
             close(pipefd[0]);
-            exit(appel(cmd2) == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+            exit(appel(cmd2) != 1 ? EXIT_SUCCESS : EXIT_FAILURE);
         } else {
             // Processus parent 
             close(pipefd[0]);
@@ -319,13 +319,13 @@ int redirectPipe(char *cmd1, char *cmd2) {
             waitpid(cpid2, &status2, 0); 
 
           
-       /*if (WIFEXITED(status1) && WEXITSTATUS(status1) != 0) {
+       if (WIFEXITED(status1) && WEXITSTATUS(status1) != 0) {
             return WEXITSTATUS(status1); // Retourne le code de sortie de cpid1 s'il a échoué
         }
 
         if (WIFEXITED(status2)) {
             return WEXITSTATUS(status2); // Retourne le code de sortie de cpid2
-        }*/
+        }
 
         }
     }
