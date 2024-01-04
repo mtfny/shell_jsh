@@ -42,7 +42,7 @@ int appelRedirection(int *argc, char ***argv){
 
     for (int i = 0; i < *argc; ++i) {
         if (containsExactSubstring((*argv)[i], "|")) {
-           // printf("\noui j'ai trouvé un pipe à la pos %d\n",i);
+           // printf("\n oui j'ai trouvé un pipe à la pos %d\n",i);
             pipeIndex = i;
             break;
         }
@@ -59,7 +59,6 @@ int appelRedirection(int *argc, char ***argv){
             lengthCmd2 += strlen((*argv)[i]) + 1;
         }
 
-        // Allouez la mémoire pour cmd1 et cmd2
         char *cmd1 = malloc(lengthCmd1 * sizeof(char));
         char *cmd2 = malloc(lengthCmd2 * sizeof(char));
         if (cmd1 == NULL || cmd2 == NULL) {
@@ -67,11 +66,9 @@ int appelRedirection(int *argc, char ***argv){
             exit(EXIT_FAILURE);
         }
 
-        // Initialisez cmd1 et cmd2
         cmd1[0] = '\0';
         cmd2[0] = '\0';
         
-        // Concaténez les arguments dans cmd1 et cmd2
         for (int i = 0; i < pipeIndex; ++i) {
             strncat(cmd1, (*argv)[i], lengthCmd1 - strlen(cmd1) - 1);
             strncat(cmd1, " ", lengthCmd1 - strlen(cmd1) - 1);
@@ -80,10 +77,8 @@ int appelRedirection(int *argc, char ***argv){
              strncat(cmd2, (*argv)[i], lengthCmd2 - strlen(cmd2) - 1);
              strncat(cmd2, " ", lengthCmd2 - strlen(cmd2) - 1);
         }
-       // printf("cmd 1 :%s\n",cmd1);
-        // printf("cmd 2 :%s\n",cmd2);
-        // Appeler la fonction pour exécuter les commandes avec un pipe
-        res = redirectPipe(cmd1, cmd2);
+     
+        res = redirectPipe(cmd1, cmd2); //fonction pour exécuter les commandes avec un pipe
 
         free(cmd1);
         free(cmd2);
@@ -123,15 +118,13 @@ int appelRedirection(int *argc, char ***argv){
         {
             new_argv[new_argc++] = (*argv)[i]; //il s'agit d'une commande on va donc la stocker pour pouvoir l'executer ensuite 
         }
-        }
-        
-        
+        } 
         
     }
     new_argv[new_argc] = NULL;
     *argc = new_argc;
     *argv = new_argv;
-
+    
     return res;
 }
 
@@ -269,13 +262,13 @@ int redirectErrPipe(int pipefd[2], char *cmd){
     
     int fd = open(cmd, O_WRONLY | O_CREAT | O_TRUNC, 0644); // Créer si n'existe pas, échouer si existe
     if (fd == -1) { 
-         perror("Erreur lors de l'ouverture du fichier de sortie");
+        perror("Erreur lors de l'ouverture du fichier de sortie");
         return 1;
     }
     if(dup2(fd, STDERR_FILENO) == -1){
-         perror("Erreur lors de la redirection de la sortie standard");
-            close(fd);
-            return 1;
+        perror("Erreur lors de la redirection de la sortie standard");
+        close(fd);
+        return 1;
     } 
     close(fd); 
     
@@ -284,7 +277,7 @@ int redirectErrPipe(int pipefd[2], char *cmd){
 int redirectPipe(char *cmd1, char *cmd2) {
     int pipefd[2];
     pid_t cpid1, cpid2;
-    int status;
+     int status1, status2;
 
     if (pipe(pipefd) == -1) {
         perror("pipe");
@@ -294,7 +287,7 @@ int redirectPipe(char *cmd1, char *cmd2) {
     cpid1 = fork();
     if (cpid1 == -1) {
         perror("fork");
-        close(pipefd[0]); // Fermer les descripteurs de fichiers en cas d'échec
+        close(pipefd[0]); 
         close(pipefd[1]);
         return 1;
     }
@@ -303,13 +296,7 @@ int redirectPipe(char *cmd1, char *cmd2) {
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
-        if (appel(cmd1) == 0)
-        {
-            exit(EXIT_SUCCESS);
-        }else
-        {
-             exit(EXIT_FAILURE);
-        }
+         exit(appel(cmd1) == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
     } else {
         cpid2 = fork();
         if (cpid2 == -1) {
@@ -322,24 +309,24 @@ int redirectPipe(char *cmd1, char *cmd2) {
             close(pipefd[1]);
             dup2(pipefd[0], STDIN_FILENO);
             close(pipefd[0]);
-             if (appel(cmd2) == 0)
-        {
-            exit(EXIT_SUCCESS);
-        }else
-        {
-             exit(EXIT_FAILURE);
-        }
+            exit(appel(cmd2) == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
         } else {
-            // Processus parent
+            // Processus parent 
             close(pipefd[0]);
             close(pipefd[1]);
 
-            waitpid(cpid1, NULL, 0); // Attendre la fin du premier processus enfant
-            waitpid(cpid2, &status, 0); // Attendre la fin du deuxième processus enfant
+            waitpid(cpid1, &status1, 0); 
+            waitpid(cpid2, &status2, 0); 
 
-            if (WIFEXITED(status)) {
-                return WEXITSTATUS(status);
-            }
+          
+       /*if (WIFEXITED(status1) && WEXITSTATUS(status1) != 0) {
+            return WEXITSTATUS(status1); // Retourne le code de sortie de cpid1 s'il a échoué
+        }
+
+        if (WIFEXITED(status2)) {
+            return WEXITSTATUS(status2); // Retourne le code de sortie de cpid2
+        }*/
+
         }
     }
     return 0; // En cas de succès
