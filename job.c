@@ -196,7 +196,6 @@ void add_to_jobs_done()
             // Le processus enfant a terminé
             if (WIFEXITED(status)) {
                 // Le processus enfant a terminé normalement
-                //printf("azalakapaino\n");
                 if(current->current_job.etat == KILLED){
                     add_job_to_list_bis( &(current->current_job));
                     jobs.size --;
@@ -264,7 +263,6 @@ void job_update()
 {
     add_to_jobs_done();
     print_job_list(&jobs_done);
-    //remove_done_killed_jobs();
     jobs_done.size = 0;
     jobs_done.head = NULL;
 
@@ -327,13 +325,12 @@ int kill_job(int sig, int job)
             if(current->current_job.num == job) 
             {
                 int result;
-                result = kill(current->current_job.pid, sig);
+                result = killpg(current->current_job.pid, sig);
 
                 switch (sig)
                 {
                 case 15:
                     current->current_job.etat = KILLED;
-                    //enlever le job de la liste à surveiller 
                     break;
                 case 18:
                     current->current_job.etat = RUNNING;
