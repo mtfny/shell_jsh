@@ -6,10 +6,10 @@ typedef struct { //Strcuture pour pouvoir appeler les commandes internes
     int (*function)(int, char**); //pointeur vers une fonction
 } Command;
 
-
 //fontions auxiliaires
 char** splitString(char* inputString, int* numWords);
 void liberer_mots(char **mots,int taille) ;
+int isInterne(const char *cmd);
 
 //Fonctions pour les commandes
 int cmd_interne(int (*function)(int, char**),int argc, char *argv[]);
