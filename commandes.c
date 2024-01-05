@@ -21,6 +21,7 @@ Command commands[] = { //Tableau des commandes internes de notre shell sauf my_e
             {"?", interogation},
             {"jobs", cmd_jobs},
             {"kill", cmd_kill},
+            {"fg", cmd_fg},
             {NULL, NULL}
     };
 
@@ -434,7 +435,7 @@ int cmd_kill(int argc, char *argv[])
     else if (argc == 2){
         pid_t pid = (pid_t)atoi(argv[1]);
         if (pid <= 0) {
-            printf("PID incorrect \n");
+            //printf("PID incorrect \n");
             return 1;
         }
 
@@ -457,7 +458,7 @@ int cmd_kill(int argc, char *argv[])
 
         pid_t pid = (pid_t)atoi(argv[2]);
         if (pid <= 0) {
-            printf("PID incorrect \n");
+            //printf("PID incorrect \n");
             return 1;
         }
 
@@ -465,4 +466,16 @@ int cmd_kill(int argc, char *argv[])
     }
      
     return 1;
+}
+
+int cmd_fg(int argc, char *argv[])
+{
+    if(argc != 2 || strncmp(argv[1], "%", 1) != 0){
+        return 1;
+    }
+
+    char *num_job = (char *)malloc(strlen(argv[1]));
+    strcpy(num_job, argv[1] + 1);
+
+    return fg_job(atoi(num_job));
 }

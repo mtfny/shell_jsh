@@ -26,5 +26,6 @@ void update();
 //void sigchld_handler(int signum);
 int cmd_jobs_size();
 int cmd_kill(int argc, char *argv[]);
+int cmd_fg(int argc, char *argv[]); 
 
 #endif

@@ -332,18 +332,41 @@ int kill_job(int sig, int job)
 
                 switch (sig)
                 {
-                case 15:
+                case SIGTERM:
                     current->current_job.etat = KILLED;
                     break;
-                case 18:
+                case SIGCHLD:
                     current->current_job.etat = RUNNING;
                     break;
-                case 19:
+                case SIGSTOP:
                     current->current_job.etat = STOPPED;
-                    break;
+                    break; 
+                case SIGTTOU:
+                    current->current_job.etat = DETACHED;
+                    break; 
                 default:
                     break;
                 }
+                return 0;
+            }
+            current = current->next;
+        }
+        return 1; 
+}
+
+int fg_job(int job)
+{
+    job_node *current = jobs.head;
+
+        while (current != NULL)
+        {
+            if(current->current_job.num == job) 
+            {
+                tcsetpgrp(STDERR_FILENO, current->current_job.pid);int status;
+                waitpid( current->current_job.pid, &status, WUNTRACED);
+
+                // Restaurer le contrôle du terminal au shell
+                tcsetpgrp(STDERR_FILENO, getpgrp());
                 return 0;
             }
             current = current->next;
