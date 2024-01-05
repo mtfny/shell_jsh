@@ -295,14 +295,17 @@ int kill_pid(int sig, pid_t pid)
                 
                 switch (sig)
                 {
-                case 15:
+                case SIGTERM:
                     current->current_job.etat = KILLED;
                     break;
-                case 18:
+                case SIGCHLD:
                     current->current_job.etat = RUNNING;
                     break;
-                case 19:
+                case SIGSTOP:
                     current->current_job.etat = STOPPED;
+                    break; 
+                case SIGTTOU:
+                    current->current_job.etat = DETACHED;
                     break; 
                 default:
                     break;

@@ -96,9 +96,9 @@ int appel(const char *instruction){
             res = 0;
         }
         
-        if (strcmp(words[0], "exit") == 0) {
-        my_exit(numWords, words); 
-        exit(0); // Sécurité, ne doit pas être atteint si my_exit fonctionne correctement
+        if (cmd_jobs_size() ==0 && strcmp(words[0], "exit") == 0) {
+            my_exit(numWords, words); 
+            exit(0); // Sécurité, ne doit pas être atteint si my_exit fonctionne correctement
         }
 
         int test_cmd = isInterne(words[0]);
