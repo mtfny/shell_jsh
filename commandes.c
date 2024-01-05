@@ -81,45 +81,55 @@ int appel(const char *instruction){
         free(dupInstruction);
         return 0;
     }
-    
     int numWords;
-
-    char **words = splitString(dupInstruction, &numWords);
-     for (size_t i = 0; i < numWords; i++)
-     {
-       // printf("%s ",words[i]);
-     }
-     
-
-   
-    if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
-    {
-        res = 0;
+    if (containsExactSubstring(dupInstruction,"|")){
+        char **words = splitString(dupInstruction, &numWords);
+        res = appelRedirection(&numWords, &words);
+        liberer_mots(words,numWords);
     }else {
+
+        int numWords;
+        char **words = splitString(dupInstruction, &numWords);
+
+        if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
+        {
+            res = 0;
+        }
+        
         if (strcmp(words[0], "exit") == 0) {
         my_exit(numWords, words); 
         exit(0); // Sécurité, ne doit pas être atteint si my_exit fonctionne correctement
         }
-        int i;
-        for (i = 0; commands[i].name != NULL; i++) {
-            if (strcmp(words[0], commands[i].name) == 0) {
-                res = cmd_interne(commands[i].function, numWords, words);
-                break;
-            }
+
+        int test_cmd = isInterne(words[0]);
+        if (test_cmd>0){
+            res = cmd_interne(commands[test_cmd].function, numWords, words);
+        }else{
+                res = cmd_externe(numWords, words);
         }
-        if (commands[i].name == NULL) { // Si la commande n'est pas trouvée dans le tableau
-            res = cmd_externe(numWords, words);
-        }
+        liberer_mots(words,numWords);
+       
     }
     free(dupInstruction);
-    liberer_mots(words,numWords);
+    
 
     char buffer[20];  //pour pouvoir stocker la valeur de retour 
     sprintf(buffer, "%d", res); // convertion l'entier en chaîne de caractères
     int c = setenv("?",buffer,1); //On stock la valeur dans une variable d'environnement
     
     return res;
-} 
+}
+
+int isInterne(const char *cmd){
+    int i;
+        for (i = 0; commands[i].name != NULL; i++) {
+            if (strcmp(cmd, commands[i].name) == 0) {
+               return i;
+            }
+        }
+
+        return 0;
+}
 
 int cmd_interne(int (*commandFunc)(int, char**),int argc, char *argv[]){
     int stdout_copy = dup(STDOUT_FILENO);

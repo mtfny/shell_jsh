@@ -277,7 +277,7 @@ int redirectErrPipe(int pipefd[2], char *cmd){
 int redirectPipe(char *cmd1, char *cmd2) {
     int pipefd[2];
     pid_t cpid1, cpid2;
-     int status1, status2;
+    int status;
 
     if (pipe(pipefd) == -1) {
         perror("pipe");
@@ -287,7 +287,7 @@ int redirectPipe(char *cmd1, char *cmd2) {
     cpid1 = fork();
     if (cpid1 == -1) {
         perror("fork");
-        close(pipefd[0]); 
+        close(pipefd[0]); // Fermer les descripteurs de fichiers en cas d'échec
         close(pipefd[1]);
         return 1;
     }
@@ -296,7 +296,7 @@ int redirectPipe(char *cmd1, char *cmd2) {
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
-         exit(appel(cmd1) != 1 ? EXIT_SUCCESS : EXIT_FAILURE);
+        exit(appel(cmd1));       
     } else {
         cpid2 = fork();
         if (cpid2 == -1) {
@@ -309,25 +309,21 @@ int redirectPipe(char *cmd1, char *cmd2) {
             close(pipefd[1]);
             dup2(pipefd[0], STDIN_FILENO);
             close(pipefd[0]);
-            exit(appel(cmd2) != 1 ? EXIT_SUCCESS : EXIT_FAILURE);
+            exit(appel(cmd2));
         } else {
-            // Processus parent 
+            // Processus parent
             close(pipefd[0]);
             close(pipefd[1]);
 
-            waitpid(cpid1, &status1, 0); 
-            waitpid(cpid2, &status2, 0); 
+            waitpid(cpid1, NULL, 0); // Attendre la fin du premier processus enfant
+            waitpid(cpid2, &status, 0); // Attendre la fin du deuxième processus enfant
 
-          
-       if (WIFEXITED(status1) && WEXITSTATUS(status1) != 0) {
-            return WEXITSTATUS(status1); // Retourne le code de sortie de cpid1 s'il a échoué
-        }
-
-        if (WIFEXITED(status2)) {
-            return WEXITSTATUS(status2); // Retourne le code de sortie de cpid2
-        }
-
+            if (WIFEXITED(status)) {
+                return WEXITSTATUS(status);
+            }
         }
     }
     return 0; // En cas de succès
 }
+
+
