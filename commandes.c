@@ -89,7 +89,7 @@ int appel(const char *instruction){
         liberer_mots(words,numWords);
     }else {
 
-        int numWords;
+        numWords = 0;
         char **words = splitString(dupInstruction, &numWords);
 
         if (words[0] == NULL) // aucune instruction n'a été donnée -> l'utilisateur a juste appuyé sur entrer
