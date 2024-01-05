@@ -21,6 +21,7 @@ Command commands[] = { //Tableau des commandes internes de notre shell sauf my_e
             {"?", interogation},
             {"jobs", cmd_jobs},
             {"kill", cmd_kill},
+            {"fg", cmd_fg},
             {NULL, NULL}
     };
 
@@ -96,9 +97,9 @@ int appel(const char *instruction){
             res = 0;
         }
         
-        if (strcmp(words[0], "exit") == 0) {
-        my_exit(numWords, words); 
-        exit(0); // Sécurité, ne doit pas être atteint si my_exit fonctionne correctement
+        if (cmd_jobs_size() ==0 && strcmp(words[0], "exit") == 0) {
+            my_exit(numWords, words); 
+            exit(0); // Sécurité, ne doit pas être atteint si my_exit fonctionne correctement
         }
 
         int test_cmd = isInterne(words[0]);
@@ -434,7 +435,7 @@ int cmd_kill(int argc, char *argv[])
     else if (argc == 2){
         pid_t pid = (pid_t)atoi(argv[1]);
         if (pid <= 0) {
-            printf("PID incorrect \n");
+            //printf("PID incorrect \n");
             return 1;
         }
 
@@ -457,7 +458,7 @@ int cmd_kill(int argc, char *argv[])
 
         pid_t pid = (pid_t)atoi(argv[2]);
         if (pid <= 0) {
-            printf("PID incorrect \n");
+            //printf("PID incorrect \n");
             return 1;
         }
 
@@ -465,4 +466,16 @@ int cmd_kill(int argc, char *argv[])
     }
      
     return 1;
+}
+
+int cmd_fg(int argc, char *argv[])
+{
+    if(argc != 2 || strncmp(argv[1], "%", 1) != 0){
+        return 1;
+    }
+
+    char *num_job = (char *)malloc(strlen(argv[1]));
+    strcpy(num_job, argv[1] + 1);
+
+    return fg_job(atoi(num_job));
 }

@@ -42,6 +42,6 @@ void job_update();
 void init_job_list();
 int kill_pid(int sig, pid_t pid);
 int kill_job(int sig, int job);
-
+int fg_job(int job);
 
 #endif
