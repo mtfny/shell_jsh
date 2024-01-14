@@ -102,12 +102,14 @@ void concatenate_strings(char **strings, char *result) {
     }
 }
 
-void init_job(job *new_job, int num, pid_t pid, char **command ) { 
+void init_job(job *new_job, int num, pid_t pid, char **command, int status) { 
     new_job->num = num_free;
     new_job->pid = pid;
     new_job->etat = RUNNING;  
+    if(WSTOPSIG(status) == SIGSTOP){
+        new_job->etat = STOPPED;
+    }
     new_job->print_while_done = 1;
-
     concatenate_strings(command, new_job->commande);
     printJob(new_job);
 
@@ -188,34 +190,29 @@ void add_to_jobs_done()
         pid_t pid = current->current_job.pid;
         int status;
 
-        pid_t result = waitpid(pid, &status, WNOHANG);
-
+        pid_t result = waitpid(pid, &status, WNOHANG | WUNTRACED | WCONTINUED);
         if (result == 0) {
             // Le processus enfant n'a pas encore terminé
         } else if (result == pid) {
             // Le processus enfant a terminé
             if (WIFEXITED(status)) {
                 // Le processus enfant a terminé normalement
-                if(current->current_job.etat == KILLED){
-                    add_job_to_list_bis( &(current->current_job));
-                    jobs.size --;
-                }else{
+                current->current_job.etat = DONE;
+                add_job_to_list_bis( &(current->current_job));
+                jobs.size --;
+            }else if (WIFSIGNALED(status)) {
+                // Le processus a été tué par un signal
+                current->current_job.etat = KILLED;
+                add_job_to_list_bis( &(current->current_job));
+                jobs.size --;
+            } else if (WIFSTOPPED(status)){ 
+                current->current_job.etat = STOPPED;
+                add_job_to_list_bis( &(current->current_job));                    
+            }    
+            else if (WIFCONTINUED(status)){
+                current->current_job.etat = RUNNING;
+                add_job_to_list_bis( &(current->current_job));
 
-                    current->current_job.etat = DONE;
-                    add_job_to_list_bis( &(current->current_job));
-                    jobs.size --;
-                    int exit_status = WEXITSTATUS(status);
-                }
-                
-            }else{
-                if(current->current_job.etat == KILLED){
-                    add_job_to_list_bis( &(current->current_job));
-                    jobs.size --;
-                }else{
-                    current->current_job.etat = DONE;
-                    add_job_to_list_bis( &(current->current_job));
-                    jobs.size --;
-                }
             }
 
         } else {
@@ -225,7 +222,6 @@ void add_to_jobs_done()
         current = current->next;
     }
 }
-
 
 void add_job_to_jobs(const job *new_job)
 {
