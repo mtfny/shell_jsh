@@ -27,7 +27,7 @@ typedef struct job_list{
 
 
 void remove_done_killed_jobs();
-void printJob(job *j);
+void printJob(job *j, int print);
 void concatenate_strings(char **strings, char *result);
 void init_job(job *new_job, int num, pid_t pid, char **command, int status );
 void print_job_list(job_list *list);
