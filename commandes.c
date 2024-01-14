@@ -359,9 +359,19 @@ int cmd_externe(int argc, char *argv[]){
             }
             
             job job_en_cours;
-            init_job(&job_en_cours,job_get_size()+1, child_pid, new_argv);
+            init_job(&job_en_cours,job_get_size()+1, child_pid, new_argv, status);
             add_job_to_jobs(&job_en_cours);
+
         }
+        
+        if (arriere_plan != 0 && WIFSTOPPED(status)) {
+            if (WSTOPSIG(status) == SIGSTOP) {
+                // Le processus fils a été stoppé par SIGTSTP
+                job job_en_cours;
+                init_job(&job_en_cours, job_get_size() + 1, child_pid, new_argv, status);
+                add_job_to_jobs(&job_en_cours);
+            }
+        } 
 
         // Libérer la mémoire du tableau d'arguments
         free(new_argv);
